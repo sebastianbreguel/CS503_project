@@ -11,7 +11,7 @@ main.py
 |__📜models.py # model class
 |__📜base_model.py # data class
 |
-|__ Modifications
+|__📂Modifications # Modification to the base Transformer architecture
 |   |__📜patch_embeddings.py # model class
 
 ```
