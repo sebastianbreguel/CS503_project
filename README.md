@@ -4,6 +4,8 @@ Authors: Sebastián Breguel Gonzalez, Aitor Ganuza Izagirre
 
 This is the repository for the CS 503 Visual intelligence: Machines and Minds project.
 
+You can install the requirements by running `pip install -r requirements.txt`.
+
 ```bash
 main.py
 |
@@ -11,7 +13,7 @@ main.py
 |__📜models.py # model class
 |__📜base_model.py # data class
 |
-|__ Modifications
+|__📂Modifications # Modification to the base Transformer architecture
 |   |__📜patch_embeddings.py # model class
 
 ```

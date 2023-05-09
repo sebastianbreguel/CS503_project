@@ -9,29 +9,15 @@ from params import BATCH_SIZE, IMG_SIZE, LR
 from tqdm import tqdm
 
 
-def get_model(name: str = "ViT"):
-    if name == "ViT":
-        model = ViT(
-            # img_size=IMG_SIZE,
-            img_size=14,
-            patch_size=2,
-            in_channels=3,
-            embed_dim=192,
-            num_classes=100,
-            depth=2,
-            num_heads=2,
-            mlp_ratio=4.0,
-            head_bias=False,
-            drop=0.1,
-            # patch_size=2,
-            # in_channels=3,
-            # embed_dim=192,
-            # num_classes=10,
-            # depth=5,
-            # num_heads=4,
-            # mlp_ratio=4.0,
-            # drop=0.15,
-        )
+MODELS = ["ViT"]
+OPTIMIZERS = ["AdamW", "Adam", "SGD"]
+
+def get_model(config):
+
+    if config["model"]["name"] == "ViT":
+        model = ViT(**config["model"])
+    else:
+        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -40,15 +26,21 @@ def get_model(name: str = "ViT"):
 
 
 # parameters will be a generator
-def get_optimizer(name, parameters, lr: float = LR):
-    if name == "Adam":
-        optimizer = torch.optim.Adam(parameters, lr=lr)
+def get_optimizer(config, parameters):
 
-    elif name == "AdamW":
-        optimizer = torch.optim.AdamW(parameters, lr=lr)
+    # optimizer
+    if config["optimizer"]["name"] == "AdamW":
+        optimizer = torch.optim.AdamW(parameters, **config["optimizer"]["params"])
 
-    elif name == "SGD":
-        optimizer = torch.optim.SGD(parameters, lr=lr)
+
+    elif config["optimizer"]["name"] == "Adam":
+        optimizer = torch.optim.Adam(parameters, **config["optimizer"]["params"])
+
+    elif config["optimizer"]["name"] == "SGD":
+        optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
+
+    else:
+        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
 
     return optimizer
 
@@ -67,10 +59,14 @@ def get_device():
     return device
 
 
-def get_loss(name: str = "CE"):
-    if name == "CE":
-        loss = F.cross_entropy
+def get_loss(name):
 
+    LOSSES = ["cross entropy"]
+    if name == "cross entropy":
+        loss = F.cross_entropy
+    else:
+        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
+    
     return loss
 
 

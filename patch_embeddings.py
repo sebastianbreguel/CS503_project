@@ -1,45 +1,57 @@
 from torch import nn
 
 
-class PatchEmbed(nn.Module):
-    def __init__(self, img_size=14, patch_size=2, in_channels=1, embed_dim=192):
+class NaivePatchEmbed(nn.Module):
+    '''
+    Basic Patch Embedding Module. Same as in the transformers graded notebook.
+    '''
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192):
         """
         Image to Patch Embedding.
 
         params:
-            :img_size: Image height and width in pixels
             :patch_size: Patch size height and width in pixels
             :in_channels: Number of input channels
             :embed_dim: Token dimension
         """
         super().__init__()
-
         self.patch_size = patch_size
-        self.img_size = img_size
-        self.in_channels = in_channels
         self.embed_dim = embed_dim
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=embed_dim, kernel_size=patch_size, stride=patch_size, bias=False)
 
-        self.conv = nn.Conv2d(in_channels, embed_dim, patch_size, stride=patch_size)
+    def get_patch_size(self):
+        return self.patch_size
 
+    def get_embed_dim(self):
+        return self.embed_dim
+    
     def forward(self, x):
-        return self.conv(x).flatten(2).transpose(1, 2)
+        '''        
+        params:
+            :x: Input of shape [B C H W]. B = batch size, C = number of channels, H = image height, W = image width
+        returns:
+            Output of shape [B N C].
+        '''
+        x = self.conv(x).flatten(2).transpose(1, 2)
+        return x
 
 
-"""""
-Embedding used on the Robust vision Transformer paper.
-"""
-
-
-class conv_embedding(nn.Module):
+class ConvEmbedding(nn.Module):
+    '''
+    Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
+    '''
     def __init__(self, in_channels, out_channels, patch_size, stride, padding):
-        super(conv_embedding, self).__init__()
+        '''
+        params:
+            :in_channels: Number of input channels
+            :out_channels: Number of output channels
+        '''
+        super().__init__()
 
         self.out_channels = out_channels
 
         self.proj = nn.Sequential(
-            nn.Conv2d(
-                in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)
-            ),
+            nn.Conv2d(in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)),
             nn.BatchNorm2d(32),
             nn.MaxPool2d(3, stride=2, padding=1),
             nn.Conv2d(32, out_channels, kernel_size=(4, 4), stride=(4, 4)),
