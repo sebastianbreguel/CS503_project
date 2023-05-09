@@ -3,7 +3,6 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision.datasets import MNIST
 import torch.nn.functional as F
-from tqdm.auto import tqdm
 
 
 def get_dataset(name):
