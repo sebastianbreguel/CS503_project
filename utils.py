@@ -12,12 +12,15 @@ from tqdm import tqdm
 MODELS = ["ViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
+
 def get_model(config):
 
     if config["model"]["name"] == "ViT":
         model = ViT(**config["model"])
     else:
-        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
+        return NotImplementedError(
+            "Model not implemented. Please choose from: " + str(MODELS)
+        )
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -32,7 +35,6 @@ def get_optimizer(config, parameters):
     if config["optimizer"]["name"] == "AdamW":
         optimizer = torch.optim.AdamW(parameters, **config["optimizer"]["params"])
 
-
     elif config["optimizer"]["name"] == "Adam":
         optimizer = torch.optim.Adam(parameters, **config["optimizer"]["params"])
 
@@ -40,7 +42,9 @@ def get_optimizer(config, parameters):
         optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
 
     else:
-        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
+        return NotImplementedError(
+            "Optimizer not implemented. Please choose from: " + str(OPTIMIZERS)
+        )
 
     return optimizer
 
@@ -65,8 +69,10 @@ def get_loss(name):
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
-        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
-    
+        raise NotImplementedError(
+            "Loss not implemented. Please choose from: " + str(LOSSES)
+        )
+
     return loss
 
 

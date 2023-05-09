@@ -80,25 +80,6 @@ def get_dataset(
         dataset_train, dataset_val = torch.utils.data.random_split(
             dataset_train_val, [45_000, 5_000]
         )
-    elif name == "ImageNet":
-        transform = transforms.Compose(
-            [
-                transforms.Resize((256, 256)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-        dataset_train = ImageNet(
-            root="./data", split="train", download=True, transform=transform
-        )
-        dataset_val = ImageNet(
-            root="./data", split="val", download=True, transform=transform
-        )
-        dataset_test = ImageNet(
-            root="./data", split="test", download=True, transform=transform
-        )
 
     loader_train = DataLoader(
         dataset_train,

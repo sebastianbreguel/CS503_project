@@ -1,5 +1,6 @@
 import torch
 
+
 def build_2d_sincos_posemb(h, w, embed_dim=1024, temperature=10000.0):
     """Sine-cosine positional embeddings from MoCo-v3
     Source: https://github.com/facebookresearch/moco-v3/blob/main/vits.py
