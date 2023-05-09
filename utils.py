@@ -5,7 +5,7 @@ from torchvision.datasets import MNIST, CIFAR10, CIFAR100, ImageNet
 import torch.nn.functional as F
 import torchvision.transforms as transforms
 from models import ViT
-from params import  BATCH_SIZE, IMG_SIZE, LR
+from params import BATCH_SIZE, IMG_SIZE, LR
 
 
 def get_model(name: str = "ViT"):
@@ -30,7 +30,6 @@ def get_model(name: str = "ViT"):
 
 # parameters will be a generator
 def get_optimizer(name, parameters, lr: float = LR):
-
     if name == "Adam":
         optimizer = torch.optim.Adam(parameters, lr=lr)
 
@@ -48,7 +47,6 @@ def get_dataset(
     num_workers: int = 8,
 ):
     if name == "MNIST":
-
         transform = torchvision.transforms.Compose(
             [
                 torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
@@ -86,18 +84,26 @@ def get_dataset(
         )
 
     elif name == "CIFAR100":
-        transform_train = transforms.Compose([
-            torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
-            transforms.RandomCrop(IMG_SIZE, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
-        ])
-        transform_test = transforms.Compose([
-            torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
-        ])
+        transform_train = transforms.Compose(
+            [
+                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+                transforms.RandomCrop(IMG_SIZE, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
+                ),
+            ]
+        )
+        transform_test = transforms.Compose(
+            [
+                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
+                ),
+            ]
+        )
 
         dataset_train_val = CIFAR100(
             root="./data", train=True, download=True, transform=transform_train
@@ -110,8 +116,6 @@ def get_dataset(
             root="./data", train=False, download=True, transform=transform_test
         )
 
-
-
     loader_train = DataLoader(
         dataset_train,
         batch_size=BATCH_SIZE,
@@ -120,16 +124,10 @@ def get_dataset(
         drop_last=True,
     )
     loader_val = DataLoader(
-        dataset_val, 
-        batch_size=BATCH_SIZE, 
-        num_workers=num_workers, 
-        drop_last=False
+        dataset_val, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False
     )
     loader_test = DataLoader(
-        dataset_test, 
-        batch_size=BATCH_SIZE, 
-        num_workers=num_workers, 
-        drop_last=False
+        dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False
     )
 
     return loader_train, loader_val, loader_test

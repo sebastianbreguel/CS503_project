@@ -45,7 +45,11 @@ class ViT(nn.Module):
         )
 
         self.transformer = Transformer(
-            dim=embed_dim, depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop
+            dim=embed_dim,
+            depth=depth,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop=drop,
         )
 
         self.head = nn.Sequential(
@@ -60,7 +64,6 @@ class ViT(nn.Module):
 
         pooled = proj.mean(dim=1)
         logits = self.head(pooled)
-        
 
         return logits
 

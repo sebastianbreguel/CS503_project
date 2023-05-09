@@ -9,11 +9,10 @@ from utils import (
 )
 import argparse
 
-from params import IMG_SIZE 
+from params import IMG_SIZE
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--dataset", type=str, help="", default="MNIST")
