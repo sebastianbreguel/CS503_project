@@ -2,6 +2,9 @@ from torch import nn
 
 
 class PatchEmbed(nn.Module):
+    '''
+    Basic Patch Embedding Module. Same as in the original paper and 
+    '''
     def __init__(self, img_size=14, patch_size=2, in_channels=1, embed_dim=192):
         """
         Image to Patch Embedding.
@@ -19,9 +22,18 @@ class PatchEmbed(nn.Module):
         self.in_channels = in_channels
         self.embed_dim = embed_dim
 
-        self.conv = nn.Conv2d(in_channels, embed_dim, patch_size, stride=patch_size)
+        self.conv = nn.Conv2d(in_channels, embed_dim, patch_size, stride=patch_size, bias=False)
 
     def forward(self, x):
+        '''
+        Performs a forward pass through the patch embedding.
+        
+        params:
+            :x: Input of shape [B C H W]. B = batch size, C = number of channels, H = image height, W = image width
+            
+        returns:
+            Output of shape [B N C].
+        '''
         return self.conv(x).flatten(2).transpose(1, 2)
 
 
