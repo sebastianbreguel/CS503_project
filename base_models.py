@@ -92,7 +92,7 @@ class Block(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(
-        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
+        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop=0.0, masked_block=None
     ):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
@@ -101,7 +101,7 @@ class Transformer(nn.Module):
 
         for _ in range(depth):
             self.blocks.append(
-                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop)
             )
 
     def forward(self, x):
