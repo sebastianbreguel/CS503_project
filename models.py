@@ -11,14 +11,14 @@ class ViT(nn.Module):
         self,
         img_size=14,
         patch_size=2,
-        in_channels=1,
-        embed_dim=192,
-        num_classes=10,
-        depth=4,
-        num_heads=4,
+        in_channels=3,
+        embed_dim=1280,
+        num_classes=100,
+        depth=32,
+        num_heads=16,
         mlp_ratio=4.0,
         head_bias=False,
-        drop=0.0,
+        drop=0.1,
         **kwargs
     ):
         """
