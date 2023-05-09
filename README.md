@@ -17,3 +17,7 @@ main.py
 |   |__📜patch_embeddings.py # model class
 
 ```
+
+## References
+
+- [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
