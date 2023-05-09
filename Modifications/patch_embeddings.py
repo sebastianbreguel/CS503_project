@@ -25,6 +25,10 @@ class PatchEmbed(nn.Module):
         return self.conv(x).flatten(2).transpose(1, 2)
 
 
+
+"""""
+Embedding used on the Robust vision Transformer paper.
+"""
 class conv_embedding(nn.Module):
     def __init__(self, in_channels, out_channels, patch_size, stride, padding):
         super(conv_embedding, self).__init__()
@@ -45,6 +49,7 @@ class conv_embedding(nn.Module):
         return x
 
 
+
 class Image2Tokens(nn.Module):
     def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
         super(Image2Tokens, self).__init__()
@@ -63,4 +68,23 @@ class Image2Tokens(nn.Module):
         x = self.conv(x)
         x = self.bn(x)
         x = self.maxpool(x)
+        return x
+
+
+
+
+
+class conv_head_pooling(nn.Module):
+    def __init__(self, in_feature, out_feature, stride,
+                 padding_mode='zeros'):
+        super(conv_head_pooling, self).__init__()
+
+        self.conv = nn.Conv2d(in_feature, out_feature, kernel_size=stride + 1,
+                              padding=stride // 2, stride=stride,
+                              padding_mode=padding_mode, groups=in_feature)
+
+    def forward(self, x):
+
+        x = self.conv(x)
+
         return x
