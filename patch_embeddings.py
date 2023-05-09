@@ -1,29 +1,30 @@
 from torch import nn
 
 
-class PatchEmbed(nn.Module):
+class NaivePatchEmbed(nn.Module):
     '''
     Basic Patch Embedding Module. Same as in the transformers graded notebook.
     '''
-    def __init__(self, img_size=14, patch_size=2, in_channels=1, embed_dim=192):
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192):
         """
         Image to Patch Embedding.
 
         params:
-            :img_size: Image height and width in pixels
             :patch_size: Patch size height and width in pixels
             :in_channels: Number of input channels
             :embed_dim: Token dimension
         """
         super().__init__()
-
         self.patch_size = patch_size
-        self.img_size = img_size
-        self.in_channels = in_channels
         self.embed_dim = embed_dim
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=embed_dim, kernel_size=patch_size, stride=patch_size, bias=False)
 
-        self.conv = nn.Conv2d(in_channels, embed_dim, patch_size, stride=patch_size, bias=False)
+    def get_patch_size(self):
+        return self.patch_size
 
+    def get_embed_dim(self):
+        return self.embed_dim
+    
     def forward(self, x):
         '''        
         params:
@@ -31,7 +32,8 @@ class PatchEmbed(nn.Module):
         returns:
             Output of shape [B N C].
         '''
-        return self.conv(x).flatten(2).transpose(1, 2)
+        x = self.conv(x).flatten(2).transpose(1, 2)
+        return x
 
 
 class ConvEmbedding(nn.Module):

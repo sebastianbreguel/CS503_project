@@ -60,9 +60,11 @@ def get_device():
 
 
 def get_loss(name):
+    LOSSES = ["cross entropy"]
     if name == "cross entropy":
         loss = F.cross_entropy
-
+    else:
+        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
     return loss
 
 
