@@ -3,53 +3,79 @@ from torch import nn
 from einops import rearrange
 
 
-# Base self attention layer
 class Mlp(nn.Module):
-    def __init__(self, dim, act_layer=nn.GELU, drop=0.0, mlp_ratio=4.0):
+    '''
+    Base two layer MLP. From the transformers notebook.
+    '''
+    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0):
+        '''
+        params:
+            :dim: Dimensionality of each token
+            :activation_function: Activation function to use
+            :dropout: Dropout rate
+            :mlp_ratio: MLP hidden dimensionality multiplier
+        '''
         super().__init__()
 
         self.mlp = nn.Sequential(
             nn.Linear(dim, int(mlp_ratio * dim)),
-            act_layer(),
-            nn.Dropout(drop),
+            activation_function(),
+            nn.Dropout(dropout),
             nn.Linear(int(mlp_ratio * dim), dim),
-            nn.Dropout(drop),
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
-        return self.mlp(x)
+        return self.mlp(x) # returns output of the same dimension as the input
 
 
-# Base self attention layer
 class Attention(nn.Module):
-    def __init__(self, dim, bias=False, drop=0.0, num_heads=8):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
         """
         Self-attention layer.
 
         params:
             :dim: Dimensionality of each token
             :num_heads: Number of attention heads
+            :bias: Whether to use bias in the linear projection
+            :dropout: Dropout rate
         """
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
 
-        self.to_qkv = nn.Linear(dim, self.num_heads * self.head_dim * 3, bias=bias)
+        # self.to_qkv = nn.Linear(dim, self.num_heads * self.head_dim * 3, bias=bias)
+        self.Q = nn.Linear(dim, dim, bias=False)
+        self.K = nn.Linear(dim, dim, bias=False)
+        self.V = nn.Linear(dim, dim, bias=False)
 
-        self.attend = nn.Softmax(dim=-1)
-        self.attn_drop = nn.Dropout(drop)
+        self.softmax = nn.Softmax(dim=-1)
+        self.attention_dropout = nn.Dropout(dropout)
 
         # Projection
-        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(drop))
+        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
     def forward(self, x, mask=None):
+        '''
+        params:
+            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
+            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
+            be zero.
+            
+        returns:
+            Output of shape [B N C].
+        '''
         B, N, C = x.shape
 
-        qkv = self.to_qkv(x).chunk(3, dim=-1)
-        q, k, v = map(
-            lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.num_heads), qkv
-        )
+        # qkv = self.to_qkv(x).chunk(3, dim=-1)
+        # q, k, v = map(
+        #     lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.num_heads), qkv
+        # )
+        q, k, v = self.Q(x), self.K(x), self.V(x)
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
 
         attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
@@ -57,8 +83,8 @@ class Attention(nn.Module):
             mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
             attn = attn.masked_fill(mask == 0, float("-inf"))
 
-        attn = self.attend(attn)
-        attn = self.attn_drop(attn)
+        attn = self.softmax(attn)
+        attn = self.attention_dropout(attn)
 
         x = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
         x = self.proj(x)
@@ -133,25 +159,6 @@ class PatchEmbed(nn.Module):
     def forward(self, x):
         return self.conv(x).flatten(2).transpose(1, 2)
 
-
-class conv_embedding(nn.Module):
-    def __init__(self, in_channels, out_channels, patch_size, stride, padding):
-        super(conv_embedding, self).__init__()
-
-        self.out_channels = out_channels
-
-        self.proj = nn.Sequential(
-            nn.Conv2d(
-                in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)
-            ),
-            nn.BatchNorm2d(32),
-            nn.MaxPool2d(3, stride=2, padding=1),
-            nn.Conv2d(32, out_channels, kernel_size=(4, 4), stride=(4, 4)),
-        )
-
-    def forward(self, x):
-        x = self.proj(x)
-        return x
 
 
 def build_2d_sincos_posemb(h, w, embed_dim=1024, temperature=10000.0):
