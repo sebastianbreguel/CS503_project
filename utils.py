@@ -1,48 +1,48 @@
 import torch
 from torch.utils.data import DataLoader
 import torchvision
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, CIFAR10, CIFAR100, ImageNet
 import torch.nn.functional as F
+import torchvision.transforms as transforms
+from models import ViT
+from params import BATCH_SIZE, IMG_SIZE, LR
+from tqdm import tqdm
 
 
-def get_dataset(name):
-    if name == "MNIST":
-        image_size = 14
-        batch_size = 64
-        num_workers = 8
+MODELS = ["ViT"]
+OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
-        transform = torchvision.transforms.Compose(
-            [
-                torchvision.transforms.Resize((image_size, image_size)),
-                torchvision.transforms.ToTensor(),
-            ]
-        )
+def get_model(config):
 
-        dataset_train_val = MNIST(
-            root="./data", train=True, download=True, transform=transform
-        )
-        dataset_train, dataset_val = torch.utils.data.random_split(
-            dataset_train_val, [50_000, 10_000]
-        )
-        dataset_test = MNIST(
-            root="./data", train=False, download=True, transform=transform
-        )
+    if config["model"]["name"] == "ViT":
+        model = ViT(**config["model"])
+    else:
+        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
 
-    loader_train = DataLoader(
-        dataset_train,
-        batch_size=batch_size,
-        num_workers=num_workers,
-        shuffle=True,
-        drop_last=True,
-    )
-    loader_val = DataLoader(
-        dataset_val, batch_size=batch_size, num_workers=num_workers, drop_last=False
-    )
-    loader_test = DataLoader(
-        dataset_test, batch_size=batch_size, num_workers=num_workers, drop_last=False
-    )
+    num_parameters = sum([p.numel() for p in model.parameters()])
+    print(f"Number of parameters: {num_parameters:,}")
 
-    return loader_train, loader_val, loader_test
+    return model
+
+
+# parameters will be a generator
+def get_optimizer(config, parameters):
+
+    # optimizer
+    if config["optimizer"]["name"] == "AdamW":
+        optimizer = torch.optim.AdamW(parameters, **config["optimizer"]["params"])
+
+
+    elif config["optimizer"]["name"] == "Adam":
+        optimizer = torch.optim.Adam(parameters, **config["optimizer"]["params"])
+
+    elif config["optimizer"]["name"] == "SGD":
+        optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
+
+    else:
+        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
+
+    return optimizer
 
 
 def get_device():
@@ -60,16 +60,24 @@ def get_device():
 
 
 def get_loss(name):
+
     LOSSES = ["cross entropy"]
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
         raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
+    
     return loss
 
 
 def train_model(
-    model, optimizer, loader_train, loader_val, num_epochs, loss_function, device="cpu"
+    model,
+    optimizer,
+    loader_train,
+    loader_val,
+    num_epochs,
+    loss_function,
+    device: str = "cpu",
 ):
     train_losses = []
     val_losses = []
@@ -78,12 +86,12 @@ def train_model(
         # Train loop
         model.train()
         epoch_loss_train = 0
-        for imgs, cls_idxs in loader_train:
+        for imgs, cls_idxs in tqdm(loader_train, total=len(loader_train)):
             inputs, targets = imgs.to(device), cls_idxs.to(device)
             logits = model(inputs)
             loss = loss_function(logits, targets)
 
-            model.zero_grad(set_to_none=True)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
@@ -109,4 +117,27 @@ def train_model(
             f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}"
         )
 
-    return train_losses, val_losses
+    return model, train_losses, val_losses
+
+
+def test_model(model, loader_test, loss_function, device: str = "cpu"):
+    test_loss = 0
+    correct = 0
+
+    model.eval()
+    for imgs, cls_idxs in loader_test:
+        inputs, targets = imgs.to(device), cls_idxs.to(device)
+
+        with torch.no_grad():
+            logits = model(inputs)
+        loss = loss_function(logits, targets)
+        test_loss += loss.item()
+
+        pred = logits.argmax(dim=1, keepdim=True)
+        correct += pred.eq(targets.view_as(pred)).sum().item()
+
+    test_loss /= len(loader_test)
+    accuracy = correct / len(loader_test.dataset)
+
+    print(f"Test loss: {test_loss:.3f}")
+    print(f"Test top-1 accuracy: {accuracy*100}%")

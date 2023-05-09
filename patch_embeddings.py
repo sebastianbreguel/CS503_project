@@ -81,3 +81,23 @@ class Image2Tokens(nn.Module):
         x = self.bn(x)
         x = self.maxpool(x)
         return x
+
+
+class conv_head_pooling(nn.Module):
+    def __init__(self, in_feature, out_feature, stride, padding_mode="zeros"):
+        super(conv_head_pooling, self).__init__()
+
+        self.conv = nn.Conv2d(
+            in_feature,
+            out_feature,
+            kernel_size=stride + 1,
+            padding=stride // 2,
+            stride=stride,
+            padding_mode=padding_mode,
+            groups=in_feature,
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+
+        return x
