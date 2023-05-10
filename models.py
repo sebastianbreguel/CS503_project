@@ -1,25 +1,27 @@
-from positional_encodings import build_2d_sincos_posemb
-from patch_embeddings import NaivePatchEmbed
+import ast
+import math
 
 import torch
 import torch.nn as nn
 from einops import rearrange
-import ast
 
+from patch_embeddings import NaivePatchEmbed
+from positional_encodings import build_2d_sincos_posemb
 
 
 class Mlp(nn.Module):
-    '''
+    """
     Base two layer MLP. From the transformers notebook.
-    '''
+    """
+
     def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0):
-        '''
+        """
         params:
             :dim: Dimensionality of each token
             :activation_function: Activation function to use
             :dropout: Dropout rate
             :mlp_ratio: MLP hidden dimensionality multiplier
-        '''
+        """
         super().__init__()
 
         self.mlp = nn.Sequential(
@@ -31,7 +33,7 @@ class Mlp(nn.Module):
         )
 
     def forward(self, x):
-        return self.mlp(x) # returns output of the same dimension as the input
+        return self.mlp(x)  # returns output of the same dimension as the input
 
 
 class Attention(nn.Module):
@@ -62,15 +64,15 @@ class Attention(nn.Module):
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
     def forward(self, x, mask=None):
-        '''
+        """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
             :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
             be zero.
-            
+
         returns:
             Output of shape [B N C].
-        '''
+        """
         B, N, C = x.shape
 
         # qkv = self.to_qkv(x).chunk(3, dim=-1)
@@ -78,9 +80,9 @@ class Attention(nn.Module):
         #     lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.num_heads), qkv
         # )
         q, k, v = self.Q(x), self.K(x), self.V(x)
-        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
-        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
-        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1,2)
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
 
         attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
@@ -142,9 +144,10 @@ class Transformer(nn.Module):
 
 
 class ViT(nn.Module):
-    '''
+    """
     Original Vision Transformer Model   (https://arxiv.org/pdf/2010.11929.pdf).
-    '''
+    """
+
     def __init__(
         self,
         depth=4,
@@ -191,17 +194,21 @@ class ViT(nn.Module):
             img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
             self.positional_encoding = nn.Parameter(
                 build_2d_sincos_posemb(
-                    img_size[0] // self.patch_embed.get_patch_size(), 
-                    img_size[1] // self.patch_embed.get_patch_size(), 
-                    embed_dim=embed_dim
+                    img_size[0] // self.patch_embed.get_patch_size(),
+                    img_size[1] // self.patch_embed.get_patch_size(),
+                    embed_dim=embed_dim,
                 ),
-                requires_grad=False, #TODO: make this a learnable parameter
+                requires_grad=False,  # TODO: make this a learnable parameter
             )
         else:
             raise NotImplementedError("Positional encoding not implemented.")
 
         self.transformer = Transformer(
-            dim=embed_dim, depth=depth, num_heads=num_heads, mlp_ratio=mlp_ratio, drop_rate=drop_rate
+            dim=embed_dim,
+            depth=depth,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=drop_rate,
         )
 
         self.head = nn.Sequential(
@@ -226,6 +233,7 @@ class PoolingTransformer(nn.Module):
     """
     Robust Vision Transformer model https://arxiv.org/pdf/2105.07926.pdf
     """
+
     def __init__(
         self,
         image_size,

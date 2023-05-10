@@ -1,8 +1,9 @@
 import torch
-from torch.utils.data import DataLoader
 import torchvision
-from torchvision.datasets import MNIST, CIFAR10, CIFAR100, ImageNet
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
+
 from params import BATCH_SIZE, IMG_SIZE
 
 
@@ -13,7 +14,6 @@ def get_dataset(
     if name == "MNIST":
         transform = torchvision.transforms.Compose(
             [
-                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
                 torchvision.transforms.ToTensor(),
             ]
         )
@@ -30,7 +30,7 @@ def get_dataset(
     elif name == "CIFAR10":
         transform = transforms.Compose(
             [
-                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+                # torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ]
@@ -51,8 +51,8 @@ def get_dataset(
 
         transform_train = transforms.Compose(
             [
-                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
-                transforms.RandomCrop(IMG_SIZE, padding=4),
+                # torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+                transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(
@@ -62,7 +62,7 @@ def get_dataset(
         )
         transform_test = transforms.Compose(
             [
-                torchvision.transforms.Resize((IMG_SIZE, IMG_SIZE)),
+                torchvision.transforms.Resize((32, 32)),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
@@ -79,25 +79,6 @@ def get_dataset(
 
         dataset_train, dataset_val = torch.utils.data.random_split(
             dataset_train_val, [45_000, 5_000]
-        )
-    elif name == "ImageNet":
-        transform = transforms.Compose(
-            [
-                transforms.Resize((256, 256)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
-        dataset_train = ImageNet(
-            root="./data", split="train", download=True, transform=transform
-        )
-        dataset_val = ImageNet(
-            root="./data", split="val", download=True, transform=transform
-        )
-        dataset_test = ImageNet(
-            root="./data", split="test", download=True, transform=transform
         )
 
     loader_train = DataLoader(
