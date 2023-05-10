@@ -1,13 +1,13 @@
 import torch
-from torch.utils.data import DataLoader
-import torchvision
-from torchvision.datasets import MNIST, CIFAR10, CIFAR100, ImageNet
 import torch.nn.functional as F
+import torchvision
 import torchvision.transforms as transforms
-from models import ViT
-from params import BATCH_SIZE, IMG_SIZE, LR
+from torch.utils.data import DataLoader
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
 from tqdm import tqdm
 
+from models import ViT
+from params import BATCH_SIZE, IMG_SIZE, LR
 
 MODELS = ["ViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]

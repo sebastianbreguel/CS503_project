@@ -1,8 +1,9 @@
 import torch
-from torch.utils.data import DataLoader
 import torchvision
-from torchvision.datasets import MNIST, CIFAR10, CIFAR100, ImageNet
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
+
 from params import BATCH_SIZE, IMG_SIZE
 
 

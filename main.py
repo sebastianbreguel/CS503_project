@@ -1,20 +1,14 @@
-from utils import (
-    get_device,
-    get_model,
-    get_loss,
-    get_optimizer,
-    train_model,
-    test_model,
-)
-from dataset import get_dataset
-
+import argparse
+import ast
+import pprint
 
 import torch
-from torchsummary import summary
-import argparse
 import yaml
-import pprint
-import ast
+from torchsummary import summary
+
+from dataset import get_dataset
+from utils import (get_device, get_loss, get_model, get_optimizer, test_model,
+                   train_model)
 
 
 def main(config):

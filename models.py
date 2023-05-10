@@ -1,11 +1,12 @@
-from positional_encodings import build_2d_sincos_posemb
-from patch_embeddings import NaivePatchEmbed
-
+import ast
 import math
+
 import torch
 import torch.nn as nn
 from einops import rearrange
-import ast
+
+from patch_embeddings import NaivePatchEmbed
+from positional_encodings import build_2d_sincos_posemb
 
 
 class Mlp(nn.Module):
