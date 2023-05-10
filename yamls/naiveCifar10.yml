@@ -1,0 +1,35 @@
+model:
+  name: "ViT"
+  params:
+    depth: 2
+    num_heads: 2
+    mlp_ratio: 4.0
+    drop_rate: 0.0
+    num_classes: 10
+    head_bias: False
+    patch_embedding:
+      type: "NaivePatchEmbedding"
+      params:
+        embed_dim: 16
+        in_channels: 3
+        patch_size: 2
+    positional_encoding:
+      type: "Fixed2DPositionalEmbedding"
+      params:
+        additive: True
+        img_size: (32, 32)
+
+optimizer:
+  name: "AdamW"
+  params:
+    lr: 0.001
+    weight_decay: 0.01
+
+training:
+  num_epochs: 2
+  loss: "cross entropy"
+
+dataset:
+  name: "CIFAR10"
+  img_size: (3, 32, 32)
+  num_classes: 10
