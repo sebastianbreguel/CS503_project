@@ -4,7 +4,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
 
-from params import BATCH_SIZE, IMG_SIZE
+from params import BATCH_SIZE
 
 
 def get_dataset(
@@ -14,7 +14,7 @@ def get_dataset(
     if name == "MNIST":
         transform = torchvision.transforms.Compose(
             [
-                #TODO resize
+                # TODO resize
                 torchvision.transforms.ToTensor(),
             ]
         )
@@ -31,7 +31,7 @@ def get_dataset(
     elif name == "CIFAR10":
         transform = transforms.Compose(
             [
-                #TODO resize
+                # TODO resize
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ]
@@ -52,7 +52,7 @@ def get_dataset(
 
         transform_train = transforms.Compose(
             [
-                #TODO resize
+                # TODO resize
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
@@ -81,8 +81,8 @@ def get_dataset(
         dataset_train, dataset_val = torch.utils.data.random_split(
             dataset_train_val, [45_000, 5_000]
         )
-                #TODO Imagnet
-                #TODO Cifar10-100  and Imagnet C
+        # TODO Imagnet
+        # TODO Cifar10-100  and Imagnet C
 
     loader_train = DataLoader(
         dataset_train,

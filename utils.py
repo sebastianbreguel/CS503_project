@@ -6,10 +6,9 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
 from tqdm import tqdm
 
-from models import ViT
-from params import BATCH_SIZE, IMG_SIZE, LR
+from models import ViT, BreguiT
 
-MODELS = ["ViT"]
+MODELS = ["ViT", "BreguiT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
 
@@ -17,6 +16,10 @@ def get_model(config):
 
     if config["model"]["name"] == "ViT":
         model = ViT(**config["model"]["params"])
+
+    elif config["model"]["name"] == "BreguiT":
+        model = BreguiT(**config["model"]["params"])
+
     else:
         return NotImplementedError(
             "Model not implemented. Please choose from: " + str(MODELS)

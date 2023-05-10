@@ -1,7 +1,7 @@
 model:
   name: "ViT"
   params:
-    depth: 2
+    depth: 1
     num_heads: 2
     mlp_ratio: 4.0
     drop_rate: 0.0
@@ -26,7 +26,7 @@ optimizer:
     weight_decay: 0.01
 
 training:
-  num_epochs: 2
+  num_epochs: 1
   loss: "cross entropy"
 
 dataset:
