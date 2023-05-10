@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
 from tqdm import tqdm
 
-from models import ViT, BreguiT
+from models import BreguiT, ViT
 
 MODELS = ["ViT", "BreguiT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]

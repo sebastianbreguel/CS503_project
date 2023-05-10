@@ -1,3 +1,4 @@
-from .patch_embeddings import NaivePatchEmbed, ConvEmbedding
+from .patch_embeddings import ConvEmbedding, NaivePatchEmbed
 from .positional_encodings import SineCosinePosEmbedding
-from .transformers import Mlp, Parallel_block, Parallel_transformers, Transformer, ConvTransformer, Attention
+from .transformers import (Attention, ConvTransformer, Mlp, Parallel_block,
+                           Parallel_transformers, Transformer)
