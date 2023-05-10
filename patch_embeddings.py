@@ -39,7 +39,7 @@ class NaivePatchEmbed(nn.Module):
         returns:
             Output of shape [B N C].
         """
-        x = self.conv(x).flatten(2).transpose(1, 2)
+        x = self.conv(x).flatten(2).transpose(-1, -2)
         return x
 
 

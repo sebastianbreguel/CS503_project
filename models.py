@@ -1,5 +1,5 @@
 from positional_encodings import build_2d_sincos_posemb
-from patch_embeddings import NaivePatchEmbed, conv_embedding, conv_head_pooling
+from patch_embeddings import NaivePatchEmbed
 
 import math
 import torch
