@@ -16,7 +16,7 @@ OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 def get_model(config):
 
     if config["model"]["name"] == "ViT":
-        model = ViT(**config["model"]['params'])
+        model = ViT(**config["model"]["params"])
     else:
         return NotImplementedError(
             "Model not implemented. Please choose from: " + str(MODELS)
