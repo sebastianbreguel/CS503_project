@@ -1,12 +1,14 @@
 from torch import nn
 
+from einops import rearrange
+
 
 class NaivePatchEmbed(nn.Module):
     """
     Basic Patch Embedding Module. Same as in the transformers graded notebook.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192):
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
         """
         Image to Patch Embedding.
 
@@ -25,6 +27,7 @@ class NaivePatchEmbed(nn.Module):
             stride=patch_size,
             bias=False,
         )
+        self.norm_layer = norm_layer(embed_dim) if norm_layer else None
 
     def get_patch_size(self):
         return self.patch_size
@@ -41,6 +44,15 @@ class NaivePatchEmbed(nn.Module):
         """
 
         x = self.conv(x).flatten(2).transpose(-1, -2)
+
+        B, C, H, W = x.shape
+        x = rearrange(x, "b c h w -> b (h w) c")
+        if self.norm:
+            x = self.norm(x)
+        x = rearrange(x, "b (h w) c -> b c h w", h=H, w=W)
+
+        if self.norm_layer is not None:
+            x = self.norm_layer(x)
         return x
 
 
