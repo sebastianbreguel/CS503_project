@@ -39,6 +39,7 @@ class NaivePatchEmbed(nn.Module):
         returns:
             Output of shape [B N C].
         """
+
         x = self.conv(x).flatten(2).transpose(-1, -2)
         return x
 
@@ -48,7 +49,7 @@ class ConvEmbedding(nn.Module):
     Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
     """
 
-    def __init__(self, in_channels, out_channels, patch_size, stride, padding):
+    def __init__(self, in_channels, embed_dim, out_channels, patch_size):
         """
         params:
             :in_channels: Number of input channels
@@ -57,18 +58,31 @@ class ConvEmbedding(nn.Module):
         super().__init__()
 
         self.out_channels = out_channels
+        self.patch_size = patch_size
 
         self.proj = nn.Sequential(
             nn.Conv2d(
-                in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)
+                in_channels,
+                embed_dim,
+                kernel_size=(7, 7),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
-            nn.BatchNorm2d(32),
+            nn.BatchNorm2d(embed_dim),
             nn.MaxPool2d(3, stride=2, padding=1),
-            nn.Conv2d(32, out_channels, kernel_size=(4, 4), stride=(4, 4)),
+            nn.Conv2d(embed_dim, out_channels, kernel_size=(4, 4), stride=(4, 4)),
         )
 
+    def get_patch_size(self):
+        return self.patch_size
+
+    def get_embed_dim(self):
+        return self.out_channels
+
     def forward(self, x):
-        x = self.proj(x)
+        print(x.shape)
+        x = self.proj(x).flatten(2).transpose(-1, -2)
+        print(x.shape)
         return x
 
 

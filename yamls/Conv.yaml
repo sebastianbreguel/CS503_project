@@ -1,5 +1,5 @@
 model:
-  name: "ViT"
+  name: "BreguiT"
   params:
     depth: 2
     num_heads: 6
@@ -8,11 +8,12 @@ model:
     num_classes: 10
     head_bias: False
     patch_embedding:
-      type: "NaivePatchEmbedding"
+      type: "ConvEmbedding"
       params:
         patch_size: 2
         in_channels: 1
-        embed_dim: 192
+        embed_dim: 256
+        out_channels: 192
     positional_encoding:
       type: "Fixed2DPositionalEmbedding"
       params:

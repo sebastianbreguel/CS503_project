@@ -11,10 +11,13 @@ main.py
 |
 |__📜utils.py  # utils function to create, get, process and run data/metrics/models
 |__📜models.py # model class
-|__📜base_model.py # data class
+|__📜dataset.py # data class
+|__📜main.py # data class
 |
-|__📂Modifications # Modification to the base Transformer architecture
+|__📂Layers
 |   |__📜patch_embeddings.py # model class
+|   |__📜positional_encodings.py # model class
+|   |__📜transformers.py # model class
 
 ```
 
