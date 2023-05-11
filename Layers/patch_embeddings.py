@@ -1,6 +1,8 @@
+import torch
 from torch import nn
 
-from einops import rearrange
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
 
 
 class NaivePatchEmbed(nn.Module):
@@ -101,7 +103,7 @@ class ConvEmbedding(nn.Module):
 
 class Image2Tokens(nn.Module):
     def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
-        super(Image2Tokens, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(
             in_chans,
             out_chans,
@@ -120,9 +122,9 @@ class Image2Tokens(nn.Module):
         return x
 
 
-class conv_head_pooling(nn.Module):
+class convHeadPooling(nn.Module):
     def __init__(self, in_feature, out_feature, stride, padding_mode="zeros"):
-        super(conv_head_pooling, self).__init__()
+        super().__init__()
 
         self.conv = nn.Conv2d(
             in_feature,
@@ -138,3 +140,65 @@ class conv_head_pooling(nn.Module):
         x = self.conv(x)
 
         return x
+
+
+class earlyConv(nn.Module):
+    """
+    3x3 conv, stride 1, 5 conv layers per https://arxiv.org/pdf/2106.14881v2.pdf
+    source: https://github.com/Jack-Etheredge/early_convolutions_vit_pytorch/blob/main/vitc/early_convolutions.py
+
+
+    using this should reduce by one the amount of heads of the transformer
+    """
+
+    def __init__(self, channels, dim, emb_dropout=0.0):
+        super().__init__()
+        n_filter_list = (
+            channels,
+            48,
+            96,
+            192,
+            384,
+        )  # hardcoding for now because that's what the paper used
+
+        self.conv_layers = nn.Sequential(
+            *[
+                nn.Sequential(
+                    nn.Conv2d(
+                        in_channels=n_filter_list[i],
+                        out_channels=n_filter_list[i + 1],
+                        kernel_size=3,  # hardcoding for now because that's what the paper used
+                        stride=2,  # hardcoding for now because that's what the paper used
+                        padding=1,
+                    ),  # hardcoding for now because that's what the paper used
+                )
+                for i in range(len(n_filter_list) - 1)
+            ]
+        )
+
+        self.conv_layers.add_module(
+            "conv_1x1",
+            nn.Conv2d(
+                in_channels=n_filter_list[-1],
+                out_channels=dim,
+                stride=1,  # hardcoding for now because that's what the paper used
+                kernel_size=1,  # hardcoding for now because that's what the paper used
+                padding=0,
+            ),
+        )  # hardcoding for now because that's what the paper used
+        self.conv_layers.add_module(
+            "flatten image",
+            Rearrange("batch channels height width -> batch (height width) channels"),
+        )
+        self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1] + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.dropout = nn.Dropout(emb_dropout)
+
+    def forward(self, x):
+        x = self.conv_layers(x)
+        b, n, _ = x.shape
+
+        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, : (n + 1)]
+        x = self.dropout(x)

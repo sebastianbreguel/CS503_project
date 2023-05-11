@@ -6,7 +6,6 @@ import torch.nn as nn
 from einops import rearrange
 
 from Layers import (
-    Attention,
     ConvEmbedding,
     ConvBlock,
     Mlp,
@@ -164,7 +163,7 @@ class BreguiT(nn.Module):
             )
         else:
             raise NotImplementedError("Positional encoding not implemented.")
-        self.transformer = Parallel_transformers(
+        self.transformer = Custom_transformer(
             dim=embed_dim,
             depth=depth,
             num_heads=num_heads,

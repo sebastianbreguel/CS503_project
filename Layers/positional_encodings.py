@@ -49,6 +49,5 @@ class SineCosinePosEmbedding(nn.Module):
 
     def forward(self, x):
         batch_size = x.size(0)
-        print(self.pos_emb.shape)
         pos_emb = self.pos_emb.repeat(batch_size, 1, 1)
         return pos_emb

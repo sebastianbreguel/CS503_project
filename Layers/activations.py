@@ -1,6 +1,15 @@
 import torch
 import torch.nn as nn
-from timm.models.layers import DropPath
+
+
+class SquaredRelu(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.relu = nn.ReLU()
+
+    def forward(self, x: torch.Tensor):
+        x = self.relu(x)
+        return x * x
 
 
 class QuickGELU(nn.Module):

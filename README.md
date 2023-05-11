@@ -30,7 +30,7 @@ here is the list of datasets with the subset of variations we are going to use:
 - MNIST
 - CIFAR10: 60K images, 10 classes
   - CIFAR10-C
-- CIFAR100: 60K images, 100 classes
+- CIFAR100: 60K images, **100** classes
   - CIFAR100-C
 - IMAGENET
   - [ImageNet](http://www.image-net.org/): 1.2 million images, 1000 classes
@@ -41,7 +41,7 @@ here is the list of datasets with the subset of variations we are going to use:
   - ImageNet-O: Out of domain distributions
   - ImageNet-A: Adversarial examples
   - ImageNet-9: Background dependence
-  - ImageNet-Sketch: Sketches
+  - ImageNet-Sketch: pen
 
 ## Usage
 
@@ -60,7 +60,6 @@ here is the list of datasets with the subset of variations we are going to use:
 
 --model: Model to train,
     - ViT
-    - ResNet
 
 --optimizer: Optimizer to train, could be SGD or Adam
         - Adam
@@ -79,3 +78,8 @@ python main.py
 - [ViT code](https://github.com/google-research/vision_transformer)/[Paper](https://arxiv.org/pdf/2010.11929.pdf)
 - [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
+- [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881.pdf)
+
+NLP field:
+
+- [Primer: Searching for Efficient Transformers for Language Modeling](https://arxiv.org/pdf/2109.08668.pdf)

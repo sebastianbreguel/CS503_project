@@ -4,7 +4,7 @@ model:
     depth: 2
     num_heads: 6
     mlp_ratio: 6.0
-    drop_rate: 0.0
+    drop_rate: 0.1
     num_classes: 10
     head_bias: False
     patch_embedding:
