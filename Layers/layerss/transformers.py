@@ -9,6 +9,10 @@ from .blocks import Block, CustomBlock, Parallel_blocks
 
 
 class Transformer(nn.Module):
+    """
+    Initial transformer class https://arxiv.org/abs/1706.03762
+    """
+
     def __init__(
         self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
     ):
@@ -29,6 +33,12 @@ class Transformer(nn.Module):
 
 
 class Parallel_transformers(nn.Module):
+    """Parallel transformer (N parallel attention followed by N parallel MLP)
+    Based on:
+      `Three things everyone should know about Vision Transformers` - https://arxiv.org/abs/2203.09795
+
+    """
+
     def __init__(
         self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
     ):
