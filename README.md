@@ -15,11 +15,31 @@ main.py
 |__📜main.py # data class
 |
 |__📂Layers
-|   |__📜patch_embeddings.py # model class
-|   |__📜positional_encodings.py # model class
-|   |__📜transformers.py # model class
+|   |__📜patch_embeddings.py
+|   |__📜positional_encodings.py
+|   |__📜transformers.py
 
 ```
+
+## Datasets
+
+here is the list of datasets with the subset of variations we are going to use:
+
+- MNIST
+- CIFAR10: 60K images, 10 classes
+  - CIFAR10-C
+- CIFAR100: 60K images, 100 classes
+  - CIFAR100-C
+- IMAGENET
+  - [ImageNet](http://www.image-net.org/): 1.2 million images, 1000 classes
+  - [ImageNet-21K](https://patrykchrabaszcz.github.io/Imagenet32/): 14 million images, 21K classes
+  - ImageNet-C: Common corruptions
+  - ImageNet-P: Common perturbations
+  - ImageNet-R: Sematinc Shifts
+  - ImageNet-O: Out of domain distributions
+  - ImageNet-A: Adversarial examples
+  - ImageNet-9: Background dependence
+  - ImageNet-Sketch: Sketches
 
 ## Usage
 
