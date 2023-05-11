@@ -102,6 +102,9 @@ class ConvEmbedding(nn.Module):
 
 
 class Image2Tokens(nn.Module):
+    '''
+    CeiT paper: https://arxiv.org/abs/2103.11816
+    '''
     def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
         super().__init__()
         self.conv = nn.Conv2d(
