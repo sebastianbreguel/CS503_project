@@ -170,7 +170,6 @@ class BreguiT(nn.Module):
             mlp_ratio=mlp_ratio,
             drop_rate=drop_rate,
         )
-
         self.head = nn.Sequential(
             nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias)
         )

@@ -8,6 +8,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from .activations import DropPath
+from .patch_embeddings import convHeadPooling
 
 
 class Mlp(nn.Module):
