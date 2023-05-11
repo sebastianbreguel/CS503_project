@@ -103,7 +103,7 @@ class Block(nn.Module):
         super().__init__()
 
         self.attention = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(dim)
+        self.MLP = Mlp(dim, dropout=drop)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
@@ -377,28 +377,6 @@ class ConvAttention(nn.Module):
         return x
 
 
-class ConvTransformer(nn.Module):
-    def __init__(
-        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
-    ):
-        super().__init__()
-        self.layers = nn.ModuleList([])
-        self.depth = depth
-        self.blocks = nn.ModuleList()
-
-        for _ in range(depth):
-            self.blocks.append(
-                ConvBlock(
-                    dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate
-                )
-            )
-
-    def forward(self, x):
-        for block in self.blocks:
-            x = block(x)
-        return x
-
-
 class ConvBlock(nn.Module):
     def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0):
         """
@@ -420,3 +398,35 @@ class ConvBlock(nn.Module):
         X_a = x + self.attention(self.LN_1(x), mask=mask)
         X_b = X_a + self.MLP(self.LN_2(X_a))
         return X_b
+
+
+class Custom_transformer(nn.Module):
+
+    """
+    Class to use custom blocks in the transformer modifications
+    """
+
+    def __init__(
+        self,
+        dim,
+        depth,
+        num_heads=8,
+        mlp_ratio=4.0,
+        drop_rate=0.0,
+        masked_block=None,
+        block=ConvBlock,
+    ):
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        self.depth = depth
+        self.blocks = nn.ModuleList()
+
+        for _ in range(depth):
+            self.blocks.append(
+                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
+
+    def forward(self, x):
+        for block in self.blocks:
+            x = block(x)
+        return x
