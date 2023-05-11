@@ -43,7 +43,26 @@ here is the list of datasets with the subset of variations we are going to use:
   - ImageNet-9: Background dependence
   - ImageNet-Sketch: pen
 
-## Usage
+## TODO
+
+- [ ] Agregate ImageNet dataset
+- [ ] Define metrics and datasets corrupted
+- [ ] Add functions to load and save models
+
+- [ ] Define final models and architectures
+- [ ] Generate general yamls models and test
+- [ ] Make pipeline for running models
+
+Review(posible implementation):
+
+- [MedVit](https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py)
+- [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://github.com/Omid-Nejati/Locality-iN-Locality)
+- [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
+- Making Vision Transformers Efficient from A Token Sparsification View
+
+Review for implementation and future ideas:
+
+- [Learning a Fourier Transform for Linear Relative Positional Encodings in Transformers](https://paperswithcode.com/paper/learning-a-fourier-transform-for-linear)
 
 ### Arguments to run model
 
@@ -79,6 +98,7 @@ python main.py
 - [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
 - [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881.pdf)
+- [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
 
 NLP field:
 

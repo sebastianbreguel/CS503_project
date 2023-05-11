@@ -1,8 +1,7 @@
 import torch
-from torch import nn
-
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+from torch import nn
 
 
 class NaivePatchEmbed(nn.Module):
@@ -64,6 +63,7 @@ class NaivePatchEmbed(nn.Module):
 class ConvEmbedding(nn.Module):
     """
     Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
+    source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
     def __init__(self, in_channels, embed_dim, out_channels, patch_size):
@@ -102,9 +102,10 @@ class ConvEmbedding(nn.Module):
 
 
 class Image2Tokens(nn.Module):
-    '''
-    CeiT paper: https://arxiv.org/abs/2103.11816
-    '''
+    """
+    Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
+    """
+
     def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
         super().__init__()
         self.conv = nn.Conv2d(
@@ -126,7 +127,13 @@ class Image2Tokens(nn.Module):
 
 
 class convHeadPooling(nn.Module):
-    def __init__(self, in_feature, out_feature, stride, padding_mode="zeros"):
+
+    """
+    RVT: https://arxiv.org/pdf/2106.13731.pdf
+    source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
+    """
+
+    def __init__(self, in_feature, out_feature, stride=2, padding_mode="zeros"):
         super().__init__()
 
         self.conv = nn.Conv2d(
@@ -141,7 +148,6 @@ class convHeadPooling(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-
         return x
 
 
