@@ -134,7 +134,7 @@ class Transformer(nn.Module):
         return x
 
 
-class Two_Blocks(nn.Module):
+class Parallel_Blocks(nn.Module):
     """
     Attention paralellization recommended in https://arxiv.org/pdf/2203.09795.pdf
 
@@ -175,28 +175,6 @@ class Two_Blocks(nn.Module):
             + self.attention_2(self.LN_1(x), mask=mask)
         )
         X_b = x_a + self.MLP_1(self.LN_2(x_a)) + self.MLP_2(self.LN_2(x_a))
-        return X_b
-
-
-class Parallel_block(nn.Module):
-    def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0):
-        """
-        Transformer encoder block.
-
-        params:
-            :dim: Dimensionality of each token
-            :num_heads: Number of attention heads
-            :mlp_ratio: MLP hidden dimensionality multiplier
-        """
-        super().__init__()
-
-        self.attention_ = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(dim)
-        self.LN = nn.LayerNorm(dim)
-        self.drop = nn.Dropout(drop)
-
-    def forward(self, x, mask=None):
-        X_b = x + self.attention(self.LN_1(x), mask=mask) + self.MLP(self.LN_2(x))
         return X_b
 
 

@@ -56,6 +56,6 @@ python main.py --model ViT --optimizer Adam --loss CE --dataset MNIST --epoch 2
 
 ## References
 
--ViT/[code](https://github.com/google-research/vision_transformer): [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf)
-
+- ViT/[code](https://github.com/google-research/vision_transformer): [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf)
+- [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
