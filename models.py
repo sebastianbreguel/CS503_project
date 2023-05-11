@@ -5,9 +5,16 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-from Layers import (ConvBlock, ConvEmbedding, Custom_transformer, Mlp,
-                    NaivePatchEmbed, Parallel_transformers,
-                    SineCosinePosEmbedding, Transformer)
+from Layers import (
+    ConvBlock,
+    ConvEmbedding,
+    Custom_transformer,
+    Mlp,
+    NaivePatchEmbed,
+    Parallel_transformers,
+    SineCosinePosEmbedding,
+    Transformer,
+)
 
 
 class ViT(nn.Module):
