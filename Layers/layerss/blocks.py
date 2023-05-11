@@ -8,7 +8,7 @@ from einops.layers.torch import Rearrange
 # import drop path from folder layers
 from Layers.utils import DropPath
 
-from .attention import Attention, RobustAttention
+from .attention import Attention, MultiDPHConvHeadAttention, RobustAttention
 from .mlp import Mlp
 
 
@@ -111,10 +111,17 @@ class Parallel_blocks(nn.Module):
             return self._forward(x, mask=mask)
 
 
-class ConvBlock(nn.Module):
-    def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0):
+class CustomBlock(nn.Module):
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        drop=0.0,
+        mlp_ratio=4.0,
+        attention=MultiDPHConvHeadAttention,
+    ):
         """
-        Transformer encoder block.
+        Transformer encoder block with a custom Attention layer.
 
         params:
             :dim: Dimensionality of each token
@@ -122,7 +129,7 @@ class ConvBlock(nn.Module):
         """
         super().__init__()
 
-        self.attention = RobustAttention(dim, dropout=drop, num_heads=num_heads)
+        self.attention = attention(dim, dropout=drop, num_heads=num_heads)
         self.MLP = Mlp(dim)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)

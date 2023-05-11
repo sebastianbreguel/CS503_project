@@ -5,7 +5,7 @@ import torch.nn as nn
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-from .blocks import Block, ConvBlock, Parallel_blocks
+from .blocks import Block, CustomBlock, Parallel_blocks
 
 
 class Transformer(nn.Module):
@@ -75,7 +75,7 @@ class Custom_transformer(nn.Module):
         mlp_ratio=4.0,
         drop_rate=0.0,
         masked_block=None,
-        block=ConvBlock,
+        block=CustomBlock,
     ):
         super().__init__()
         self.layers = nn.ModuleList([])

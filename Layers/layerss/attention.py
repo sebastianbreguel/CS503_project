@@ -6,10 +6,11 @@ from einops import rearrange
 from einops.layers.torch import Rearrange
 
 
+# Baseline
 class Attention(nn.Module):
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
         """
-        Self-attention layer.
+        Original Self-Attention Layer from https://arxiv.org/pdf/1706.03762.pdf
 
         params:
             :dim: Dimensionality of each token
@@ -64,6 +65,7 @@ class Attention(nn.Module):
         return x
 
 
+# Convolutional Proyection
 class ConvAttention(nn.Module):
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
         """
@@ -203,6 +205,10 @@ class ConvAttention(nn.Module):
 class SpatialDepthWisePerHeadConvolution(nn.Module):
     """
     ## Spatial Depth Wise Per Head Convolution
+
+
+    Implementation of the paper: https://arxiv.org/pdf/2109.08668.pdf
+    source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
     def __init__(self, heads: int, d_k: int, kernel_size: int = 3):
@@ -212,6 +218,8 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
         """
         super().__init__()
         self.kernel_size = kernel_size
+        self.heads = heads
+        self.head_dim = d_k
         # We use PyTorch's `Conv1d` module.
         # We set the number of groups to be equal to the number of channels from each head
         # so that it does a separate convolution
@@ -227,62 +235,23 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
 
     def forward(self, x: torch.Tensor):
         """
-        `x` has shape `[seq_len, batch_size, heads, d_k]`
+        params:
+            :x: Input of shape [B (H * D) N]., N = sequence length, B = batch size H = token head, D = token dimensionality
+
+        returns:
+            Output of shape [N B H D].-
+
         """
 
-        # Get the shape
-        seq_len, batch_size, heads, d_k = x.shape
-        # Permute to `[batch_size, heads, d_k, seq_len]`
-        x = x.permute(1, 2, 3, 0)
-        # Change the shape to `[batch_size heads * d_k, seq_len]`
-        x = x.view(batch_size, heads * d_k, seq_len)
+        B, _, N = x.shape
 
         # 1D convolution accepts input of the form `[N, channels, sequence]`
         x = self.conv(x)
+
         # Crop the right most `kernel_size - 1` results since we padded both sides
         x = x[:, :, : -(self.kernel_size - 1)]
-        # Reshape to `[batch_size, heads, d_k, seq_len]`
-        x = x.view(batch_size, heads, d_k, seq_len)
-        # Permute to `[seq_len, batch_size, heads, d_k]`
-        x = x.permute(3, 0, 1, 2)
+        x = x.view(B, self.heads, self.head_dim, N).permute(3, 0, 1, 2)
 
-        #
-        return x
-
-
-class PrepareForMultiHeadAttention(nn.Module):
-    """
-    <a id="PrepareMHA"></a>
-
-    ## Prepare for multi-head attention
-
-    This module does a linear transformation and splits the vector into given
-    number of heads for multi-head attention.
-    This is used to transform **key**, **query**, and **value** vectors.
-    """
-
-    def __init__(self, d_model: int, heads: int, d_k: int, bias: bool):
-        super().__init__()
-        # Linear layer for linear transform
-        self.linear = nn.Linear(d_model, heads * d_k, bias=bias)
-        # Number of heads
-        self.heads = heads
-        # Number of dimensions in vectors in each head
-        self.d_k = d_k
-
-    def forward(self, x: torch.Tensor):
-        # Input has shape `[seq_len, batch_size, d_model]` or `[batch_size, d_model]`.
-        # We apply the linear transformation to the last dimension and split that into
-        # the heads.
-        head_shape = x.shape[:-1]
-
-        # Linear transform
-        x = self.linear(x)
-
-        # Split last dimension into heads
-        x = x.view(*head_shape, self.heads, self.d_k)
-
-        # Output has shape `[seq_len, batch_size, heads, d_k]` or `[batch_size, heads, d_model]`
         return x
 
 
@@ -302,22 +271,13 @@ class MultiDPHConvHeadAttention(nn.Module):
         # self.scale = 1 / math.sqrt(self.d_k)
         self.scale = self.head_dim**-0.5
 
-        self.Q = nn.Sequential(
-            PrepareForMultiHeadAttention(
-                dim, self.num_heads, self.head_dim, bias=False
-            ),
-            SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim),
-        )
-        self.K = nn.Sequential(
-            PrepareForMultiHeadAttention(
-                dim, self.num_heads, self.head_dim, bias=False
-            ),
-            SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim),
-        )
-        self.V = nn.Sequential(
-            PrepareForMultiHeadAttention(dim, self.num_heads, self.head_dim, bias=True),
-            SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim),
-        )
+        self.Q_linear = nn.Linear(dim, self.num_heads * self.head_dim, bias=False)
+        self.K_linear = nn.Linear(dim, self.num_heads * self.head_dim, bias=False)
+        self.V_linear = nn.Linear(dim, self.num_heads * self.head_dim, bias=False)
+
+        self.Q = SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim)
+        self.K = SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim)
+        self.V = SpatialDepthWisePerHeadConvolution(self.num_heads, self.head_dim)
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)
@@ -336,14 +296,17 @@ class MultiDPHConvHeadAttention(nn.Module):
             Output of shape [B N C].
         """
         B, N, C = x.shape
-
-        q = self.Q(x).transpose(1, 2)
-        k = self.K(x).transpose(1, 2)
-        v = self.V(x).transpose(1, 2)
+        q = self.Q(
+            self.Q_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
+        k = self.K(
+            self.K_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
+        v = self.V(
+            self.V_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
 
         scores = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-
-        # scores = self.get_scores(q, k) * self.scale
 
         attn = self.softmax(scores)
         attn = self.attention_dropout(attn)
