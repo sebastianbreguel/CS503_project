@@ -13,7 +13,6 @@ OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
 
 def get_model(config):
-
     if config["model"]["name"] == "ViT":
         model = ViT(**config["model"]["params"])
 
@@ -33,7 +32,6 @@ def get_model(config):
 
 # parameters will be a generator
 def get_optimizer(config, parameters):
-
     # optimizer
     if config["optimizer"]["name"] == "AdamW":
         optimizer = torch.optim.AdamW(parameters, **config["optimizer"]["params"])
@@ -67,7 +65,6 @@ def get_device():
 
 
 def get_loss(name):
-
     LOSSES = ["cross entropy"]
     if name == "cross entropy":
         loss = F.cross_entropy

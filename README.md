@@ -15,11 +15,31 @@ main.py
 |__📜main.py # data class
 |
 |__📂Layers
-|   |__📜patch_embeddings.py # model class
-|   |__📜positional_encodings.py # model class
-|   |__📜transformers.py # model class
+|   |__📜patch_embeddings.py
+|   |__📜positional_encodings.py
+|   |__📜transformers.py
 
 ```
+
+## Datasets
+
+here is the list of datasets with the subset of variations we are going to use:
+
+- MNIST
+- CIFAR10: 60K images, 10 classes
+  - CIFAR10-C
+- CIFAR100: 60K images, 100 classes
+  - CIFAR100-C
+- IMAGENET
+  - [ImageNet](http://www.image-net.org/): 1.2 million images, 1000 classes
+  - [ImageNet-21K](https://patrykchrabaszcz.github.io/Imagenet32/): 14 million images, 21K classes
+  - ImageNet-C: Common corruptions
+  - ImageNet-P: Common perturbations
+  - ImageNet-R: Sematinc Shifts
+  - ImageNet-O: Out of domain distributions
+  - ImageNet-A: Adversarial examples
+  - ImageNet-9: Background dependence
+  - ImageNet-Sketch: Sketches
 
 ## Usage
 
@@ -56,6 +76,6 @@ python main.py --model ViT --optimizer Adam --loss CE --dataset MNIST --epoch 2
 
 ## References
 
--ViT/[code](https://github.com/google-research/vision_transformer): [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf)
-
+- ViT/[code](https://github.com/google-research/vision_transformer): [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf)
+- [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)

@@ -49,7 +49,6 @@ def get_dataset(
         )
 
     elif name == "CIFAR100":
-
         transform_train = transforms.Compose(
             [
                 # TODO resize
