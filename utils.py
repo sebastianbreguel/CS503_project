@@ -1,4 +1,5 @@
 import torch
+import torch.jit as jit
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
@@ -110,6 +111,7 @@ def train_model(
         model.eval()
         epoch_loss_val = 0
         for imgs, cls_idxs in loader_val:
+            print("hola")
             inputs, targets = imgs.to(device), cls_idxs.to(device)
             logits = model(inputs)
             loss = loss_function(logits, targets)

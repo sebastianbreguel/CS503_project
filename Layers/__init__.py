@@ -4,10 +4,12 @@ from .transformers import (
     # Self-attention layers
     Attention,
     ConvAttention,
+    MultiDPHConvHeadAttention,
+    RobustAttention,
     Mlp,
     # Transformers blocks
     ConvBlock,
-    Parallel_block,
+    Parallel_blocks,
     # Transformers
     Parallel_transformers,
     Custom_transformer,
