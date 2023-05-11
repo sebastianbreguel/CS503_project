@@ -7,7 +7,7 @@ from .transformers import (
     Mlp,
     # Transformers blocks
     ConvBlock,
-    Parallel_block,
+    Parallel_blocks,
     # Transformers
     Parallel_transformers,
     Custom_transformer,

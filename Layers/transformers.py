@@ -1,8 +1,9 @@
 from collections import OrderedDict
 
 
-from activations import QuickGELU
-from timm.models.layers import DropPath
+from .activations import QuickGELU
+
+# from timm.models.layers import DropPath
 import torch
 import torch.nn as nn
 from einops import rearrange
@@ -137,7 +138,7 @@ class Transformer(nn.Module):
         return x
 
 
-class Parallel_Blocks(nn.Module):
+class Parallel_blocks(nn.Module):
     """Parallel ViT block (N parallel attention followed by N parallel MLP)
     Based on:
       `Three things everyone should know about Vision Transformers` - https://arxiv.org/abs/2203.09795
@@ -164,7 +165,7 @@ class Parallel_Blocks(nn.Module):
         super().__init__()
         self.num_parallel = num_parallel
         self.attns = nn.ModuleList()
-        self.Mlps = nn.ModuleList()
+        self.mlps = nn.ModuleList()
 
         for _ in range(num_parallel):
             self.attns.append(
@@ -179,12 +180,12 @@ class Parallel_Blocks(nn.Module):
                     )
                 )
             )
-            self.Mlps.append(
+            self.mlps.append(
                 nn.Sequential(
                     OrderedDict(
                         [
                             ("norm", nn.LayerNorm(dim)),
-                            ("mlp", Mlp(dim, drop_out=drop)),
+                            ("mlp", Mlp(dim, dropout=drop)),
                             ("ls", nn.Identity()),
                             ("drop_path", nn.Identity()),
                         ]
@@ -199,8 +200,9 @@ class Parallel_Blocks(nn.Module):
 
     @torch.jit.ignore
     def _forward(self, x, mask):
-        x = x + sum(attn(x, mask=mask) for attn in self.attns)
-        x = x + sum(mlp(x) for mlp in self.mlp)
+        print(x.shape)
+        x = x + sum(attn(x) for attn in self.attns)
+        x = x + sum(mlp(x) for mlp in self.mlps)
         return x
 
     def forward(self, x, mask=None):
@@ -214,16 +216,16 @@ class Parallel_transformers(nn.Module):
     def __init__(
         self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
     ):
-        super(Transformer, self).__init__()
+        super().__init__()
         self.layers = nn.ModuleList([])
-        self.parallel_blocks = 2
+        self.parallel_blocks = 3
         self.depth = depth // self.parallel_blocks
         self.unique = depth % self.parallel_blocks
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
             self.blocks.append(
-                Parallel_Blocks(
+                Parallel_blocks(
                     dim=dim,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
@@ -246,9 +248,8 @@ class Parallel_transformers(nn.Module):
 class ConvAttention(nn.Module):
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
         """
-        Self-attention layer for Convolutional Proyection
-
-        Oficial implementation of https://arxiv.org/pdf/2103.15808.pdf
+        Self-attention layer for Convolutional Proyection https://arxiv.org/pdf/2103.15808.pdf
+        Source: https://github.com/leoxiaobin/CvT/tree/main
 
         params:
             :dim: Dimensionality of each token

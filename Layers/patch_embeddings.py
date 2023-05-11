@@ -45,6 +45,9 @@ class NaivePatchEmbed(nn.Module):
 
         x = self.conv(x).flatten(2).transpose(-1, -2)
 
+        if len(x.shape) == 3:
+            return x
+
         B, C, H, W = x.shape
         x = rearrange(x, "b c h w -> b (h w) c")
         if self.norm:
@@ -92,9 +95,7 @@ class ConvEmbedding(nn.Module):
         return self.out_channels
 
     def forward(self, x):
-        print(x.shape)
         x = self.proj(x).flatten(2).transpose(-1, -2)
-        print(x.shape)
         return x
 
 

@@ -1,24 +1,23 @@
 model:
   name: "BreguiT"
   params:
-    depth: 2
-    num_heads: 6
+    depth: 1
+    num_heads: 2
     mlp_ratio: 6.0
     drop_rate: 0.0
     num_classes: 10
     head_bias: False
     patch_embedding:
-      type: "ConvEmbedding"
+      type: "NaivePatchEmbedding"
       params:
         patch_size: 2
-        in_channels: 1
-        embed_dim: 256
-        out_channels: 192
+        in_channels: 3
+        embed_dim: 192
     positional_encoding:
       type: "Fixed2DPositionalEmbedding"
       params:
         additive: True
-        img_size: (28, 28)
+        img_size: (32, 32)
         requires_grad: True
         #todo Hacer que IMG_size de dataset y positional calzen
 
@@ -33,6 +32,6 @@ training:
   loss: "cross entropy"
 
 dataset:
-  name: "MNIST"
-  img_size: (1, 28, 28)
+  name: "CIFAR10"
+  img_size: (3, 32, 32)
   num_classes: 10

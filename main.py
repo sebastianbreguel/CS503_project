@@ -7,8 +7,14 @@ import yaml
 from torchsummary import summary
 
 from dataset import get_dataset
-from utils import (get_device, get_loss, get_model, get_optimizer, test_model,
-                   train_model)
+from utils import (
+    get_device,
+    get_loss,
+    get_model,
+    get_optimizer,
+    test_model,
+    train_model,
+)
 
 
 def main(config):

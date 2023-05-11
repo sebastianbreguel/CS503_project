@@ -18,6 +18,8 @@ main.py
 |   |__📜patch_embeddings.py
 |   |__📜positional_encodings.py
 |   |__📜transformers.py
+|__📂yamls  #Configurations to run the models
+
 
 ```
 
@@ -68,14 +70,12 @@ here is the list of datasets with the subset of variations we are going to use:
 
 #### Examples
 
-1: Run model Vit with Adam optimizer and CrossEntropyLoss loss on MNIST dataset for 2 epochs
-
 ```python
-python main.py --model ViT --optimizer Adam --loss CE --dataset MNIST --epoch 2
+python main.py
 ```
 
 ## References
 
-- ViT/[code](https://github.com/google-research/vision_transformer): [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf)
+- [ViT code](https://github.com/google-research/vision_transformer)/[Paper](https://arxiv.org/pdf/2010.11929.pdf)
 - [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)

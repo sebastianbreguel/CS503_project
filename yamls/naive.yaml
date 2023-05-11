@@ -18,7 +18,7 @@ model:
       params:
         additive: True
         img_size: (28, 28)
-        requires_grad: True
+        requires_grad: False
         #todo Hacer que IMG_size de dataset y positional calzen
 
 optimizer:

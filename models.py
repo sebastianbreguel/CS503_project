@@ -5,9 +5,17 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-from Layers import (Attention, ConvEmbedding, ConvTransformer, Mlp,
-                    NaivePatchEmbed, Parallel_transformers,
-                    SineCosinePosEmbedding, Transformer)
+from Layers import (
+    Attention,
+    ConvEmbedding,
+    ConvBlock,
+    Mlp,
+    NaivePatchEmbed,
+    Custom_transformer,
+    Parallel_transformers,
+    SineCosinePosEmbedding,
+    Transformer,
+)
 
 
 class ViT(nn.Module):
@@ -156,8 +164,7 @@ class BreguiT(nn.Module):
             )
         else:
             raise NotImplementedError("Positional encoding not implemented.")
-
-        self.transformer = ConvTransformer(
+        self.transformer = Parallel_transformers(
             dim=embed_dim,
             depth=depth,
             num_heads=num_heads,
@@ -171,8 +178,6 @@ class BreguiT(nn.Module):
 
     def forward(self, x):
         proj = self.patch_embed(x)
-        print(x.shape)
-        print(proj.shape)
 
         if self.positional_encoding is not None:
             proj = proj + self.positional_encoding(proj)
