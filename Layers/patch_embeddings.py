@@ -211,3 +211,12 @@ class earlyConv(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
+
+
+class PrelayerNorm(nn.Module):
+    def __init__(self, dim, eps=1e-6):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim, eps=eps)
+
+    def forward(self, x):
+        return self.norm(x)

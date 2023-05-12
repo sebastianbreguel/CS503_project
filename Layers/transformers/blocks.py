@@ -52,7 +52,15 @@ class Parallel_blocks(nn.Module):
     2) x_l+2 = x_l+1 + mlp_1(x_l+1) + mlp_2(x_l+1)
     """
 
-    def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0, num_parallel=2):
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        drop=0.0,
+        mlp_ratio=4.0,
+        activation=nn.GELU,
+        num_parallel=2,
+    ):
         """
         Transformer encoder block.
 
@@ -85,7 +93,15 @@ class Parallel_blocks(nn.Module):
                     OrderedDict(
                         [
                             ("norm", nn.LayerNorm(dim)),
-                            ("mlp", Mlp(dim, dropout=drop)),
+                            (
+                                "mlp",
+                                Mlp(
+                                    dim,
+                                    dropout=drop,
+                                    mlp_ratio=mlp_ratio,
+                                    activation_function=activation,
+                                ),
+                            ),
                             ("ls", nn.Identity()),
                             ("drop_path", nn.Identity()),
                         ]
@@ -118,6 +134,7 @@ class CustomBlock(nn.Module):
         num_heads,
         drop=0.0,
         mlp_ratio=4.0,
+        activavtion=nn.GELU,
         attention=MultiDPHConvHeadAttention,
     ):
         """
@@ -130,7 +147,9 @@ class CustomBlock(nn.Module):
         super().__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(dim)
+        self.MLP = Mlp(
+            dim, dropout=drop, activation_function=activavtion, mlp_ratio=mlp_ratio
+        )
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
