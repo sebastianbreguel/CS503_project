@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-from Layers import (ConvEmbedding, Custom_transformer, NaivePatchEmbed,
+from Layers import (ConvEmbedding, CustomTransformer, NaivePatchEmbed,
                     PrelayerNorm, SineCosinePosEmbedding, Transformer)
 
 
@@ -165,7 +165,7 @@ class BreguiT(nn.Module):
             )
         else:
             raise NotImplementedError("Positional encoding not implemented.")
-        self.transformer = Custom_transformer(
+        self.transformer = CustomTransformer(
             dim=embed_dim,
             depth=depth,
             num_heads=num_heads,
