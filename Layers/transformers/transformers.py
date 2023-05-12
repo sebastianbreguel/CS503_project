@@ -1,9 +1,4 @@
-from collections import OrderedDict
-
-import torch
 import torch.nn as nn
-from einops import rearrange
-from einops.layers.torch import Rearrange
 
 from .blocks import Block, CustomBlock, Parallel_blocks
 
