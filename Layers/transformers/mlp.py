@@ -4,6 +4,8 @@ import torch.nn as nn
 class Mlp(nn.Module):
     """
     Base two layer MLP. From the transformers notebook.
+
+    trad
     """
 
     def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0):
