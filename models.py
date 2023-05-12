@@ -6,7 +6,7 @@ import torch.nn as nn
 from einops import rearrange
 
 from Layers import (ConvEmbedding, Custom_transformer, NaivePatchEmbed,
-                    SineCosinePosEmbedding, Transformer)
+                    PrelayerNorm, SineCosinePosEmbedding, Transformer)
 
 
 class ViT(nn.Module):
@@ -111,6 +111,7 @@ class BreguiT(nn.Module):
         img_size=(28, 28),
         num_classes=10,
         head_bias=False,
+        preLayerNorm=False,
         **kwargs
     ):
         """
@@ -127,6 +128,15 @@ class BreguiT(nn.Module):
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
         super().__init__()
+
+        img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
+        self.PrelayerNorm = (
+            PrelayerNorm(
+                [patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]
+            )
+            if preLayerNorm
+            else nn.Identity()
+        )
 
         # Patch embedding
         if patch_embedding == "default":
@@ -167,6 +177,8 @@ class BreguiT(nn.Module):
         )
 
     def forward(self, x):
+        x = self.PrelayerNorm(x)
+
         proj = self.patch_embed(x)
 
         if self.positional_encoding is not None:
