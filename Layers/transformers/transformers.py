@@ -32,7 +32,7 @@ class Transformer(nn.Module):
         return x
 
 
-class Parallel_transformers(nn.Module):
+class ParallelTransformers(nn.Module):
     """Parallel transformer (N parallel attention followed by N parallel MLP)
     Based on:
       `Three things everyone should know about Vision Transformers` - https://arxiv.org/abs/2203.09795
@@ -71,7 +71,7 @@ class Parallel_transformers(nn.Module):
         return x
 
 
-class Custom_transformer(nn.Module):
+class CustomTransformer(nn.Module):
 
     """
     Class to use custom blocks in the transformer modifications
