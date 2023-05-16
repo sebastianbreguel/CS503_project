@@ -59,6 +59,7 @@ Review(posible implementation):
 - [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://github.com/Omid-Nejati/Locality-iN-Locality)
 - [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
 - Making Vision Transformers Efficient from A Token Sparsification View
+- https://arxiv.org/pdf/2203.16329.pdf
 
 Review for implementation and future ideas:
 

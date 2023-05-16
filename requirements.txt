@@ -1,5 +1,7 @@
-torch
-torchvision
-torchsummary
+pytorch==1.13.1
+torch-summary
 einops
 pyyaml
+tqdm
+
+
