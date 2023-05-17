@@ -1,10 +1,20 @@
 import torch
 import torch.nn as nn
 
-
 ######
 # Normalization methods
 #####
+
+
+class LayerNorm(nn.Module):
+    def __init__(self, dim, eps=1e-6):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim, eps=eps)
+
+    def forward(self, x):
+        return self.norm(x)
+
+
 class RMSNorm(nn.Module):
     """
     "Root Mean Square Layer Normalization (RMSNorm)" -> https://arxiv.org/pdf/1910.07467.pdf

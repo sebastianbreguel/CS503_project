@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from einops import rearrange
 from einops.layers.torch import Rearrange
 
-from Layers.positional_encodings import Relative2DPosEncQKV, relativePos
+from Layers.positional_encodings import relativePos
 
 
 # Baseline
@@ -388,7 +388,7 @@ class RobustAttention(nn.Module):
 # Baseline
 class AxialAttention(nn.Module):
     """
-    Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation
+    Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation https://arxiv.org/pdf/2003.07853.pdf
 
     """
 
@@ -440,10 +440,9 @@ class AxialAttention(nn.Module):
 
         QEr = self.Eq(q, N)
         KEr = self.Ek(k, N)
+        attn = torch.matmul(q, k.transpose(-1, -2))
 
-        attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-        # do the element wise sum
-        attn = attn + QEr + KEr
+        attn = (attn + QEr + KEr) * self.scale
 
         if mask is not None:
             mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
@@ -455,19 +454,9 @@ class AxialAttention(nn.Module):
         VEr = self.Ev(attn, N, transpose=False)
         sv = torch.matmul(attn, v)
 
-        # do the element wise sum
         x = sv + VEr
-
         x = x.transpose(1, 2).contiguous().view(B, N, C)
 
         x = self.proj(x)
 
         return x
-
-    def _skew(self, qe):
-        # pad a column of zeros on the left
-        padded_qe = F.pad(qe, [1, 0])
-        s = padded_qe.shape
-        padded_qe = padded_qe.view(s[0], s[1], s[3], s[2])
-        # take out first (padded) row
-        return padded_qe[:, :, 1:, :]
