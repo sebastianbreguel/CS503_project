@@ -2,8 +2,11 @@ from collections import OrderedDict
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange
 from einops.layers.torch import Rearrange
+
+from Layers.positional_encodings import Relative2DPosEncQKV, relativePos
 
 
 # Baseline
@@ -211,7 +214,7 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
     source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
-    def __init__(self, heads: int, d_k: int, kernel_size: int = 3):
+    def __init__(self, heads: int, dim: int, kernel_size: int = 3):
         """
         * `heads` is the number of heads
         * `d_k` is the number of channels in each head
@@ -219,18 +222,13 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
         super().__init__()
         self.kernel_size = kernel_size
         self.heads = heads
-        self.head_dim = d_k
-        # We use PyTorch's `Conv1d` module.
-        # We set the number of groups to be equal to the number of channels from each head
-        # so that it does a separate convolution
-        # (with different kernels) for each channel and head.
-        # We add padding to both sides and later crop the right most `kernel_size - 1` results
+        self.head_dim = dim
         self.conv = nn.Conv1d(
-            in_channels=d_k * heads,
-            out_channels=d_k * heads,
+            in_channels=dim * heads,
+            out_channels=dim * heads,
             kernel_size=(kernel_size,),
             padding=(kernel_size - 1,),
-            groups=d_k * heads,
+            groups=dim * heads,
         )
 
     def forward(self, x: torch.Tensor):
@@ -385,3 +383,91 @@ class RobustAttention(nn.Module):
         x = self.proj(x)
 
         return x
+
+
+# Baseline
+class AxialAttention(nn.Module):
+    """
+    Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation
+
+    """
+
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+        """
+
+        params:
+            :dim: Dimensionality of each token
+            :num_heads: Number of attention heads
+            :bias: Whether to use bias in the linear projection
+            :dropout: Dropout rate
+        """
+        super().__init__()
+
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim**-0.5
+
+        self.Q = nn.Linear(dim, dim, bias=False)
+        self.K = nn.Linear(dim, dim, bias=False)
+        self.V = nn.Linear(dim, dim, bias=False)
+
+        self.softmax = nn.Softmax(dim=-1)
+        self.attention_dropout = nn.Dropout(dropout)
+        self.max_length = 1028
+        self.Eq = relativePos(dim, self.num_heads, self.head_dim)
+        self.Ek = relativePos(dim, self.num_heads, self.head_dim)
+        self.Ev = relativePos(dim, self.num_heads, self.head_dim)
+
+        # Projection
+        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
+
+    def forward(self, x, mask=None):
+        """
+        params:
+            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
+            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
+            be zero.
+
+        returns:
+            Output of shape [B N C].
+        """
+        B, N, C = x.shape
+
+        q, k, v = self.Q(x), self.K(x), self.V(x)
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+
+        QEr = self.Eq(q, N)
+        KEr = self.Ek(k, N)
+
+        attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        # do the element wise sum
+        attn = attn + QEr + KEr
+
+        if mask is not None:
+            mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
+            attn = attn.masked_fill(mask == 0, float("-inf"))
+
+        attn = self.softmax(attn)
+        attn = self.attention_dropout(attn)
+
+        VEr = self.Ev(attn, N, transpose=False)
+        sv = torch.matmul(attn, v)
+
+        # do the element wise sum
+        x = sv + VEr
+
+        x = x.transpose(1, 2).contiguous().view(B, N, C)
+
+        x = self.proj(x)
+
+        return x
+
+    def _skew(self, qe):
+        # pad a column of zeros on the left
+        padded_qe = F.pad(qe, [1, 0])
+        s = padded_qe.shape
+        padded_qe = padded_qe.view(s[0], s[1], s[3], s[2])
+        # take out first (padded) row
+        return padded_qe[:, :, 1:, :]

@@ -2,6 +2,48 @@ import torch
 import torch.nn as nn
 
 
+######
+# Normalization methods
+#####
+class RMSNorm(nn.Module):
+    """
+    "Root Mean Square Layer Normalization (RMSNorm)" -> https://arxiv.org/pdf/1910.07467.pdf
+    """
+
+    def __init__(self, dim, eps=1e-8):
+        super().__init__()
+        self.eps = eps
+        self.dim = dim
+        self.gamma = nn.Parameter(torch.ones(dim))
+
+    def forward(self, x):
+        norm_x = x.norm(2, dim=-1, keepdim=True)
+        rms_x = norm_x * self.dim ** (-1 / 2)
+
+        x_normed = x / (rms_x + self.eps)
+
+        return self.gamma * x_normed
+
+
+class DeepNormalize(nn.Module):
+    """
+    DeepNormalize: An Efficient Normalization Method for Deep Learning
+    """
+
+    def __init__(self, alpha):
+        super().__init__()
+        self.alpha = alpha
+        self.layerNorm = nn.LayerNorm()
+
+    def forward(self, layer, x):
+        return self.layerNorm(self.alpha * x + layer(x))
+
+
+#######################################################
+# Activation functions
+#######################################################
+
+
 class SquaredRelu(nn.Module):
     def __init__(self):
         super().__init__()
@@ -12,9 +54,39 @@ class SquaredRelu(nn.Module):
         return x * x
 
 
+class Swish(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x: torch.Tensor):
+        return x * self.sigmoid(x)
+
+
+class SwiGLU(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.swish = nn.Swish()
+
+    def forward(self, x1, x2):
+        return self.swish(x1) * x2
+
+
+class GeGlu(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.gelu = nn.GELU()
+
+    def forward(self, x1, x2):
+        return self.gelu(x1) * x2
+
+
 class QuickGELU(nn.Module):
     def forward(self, x: torch.Tensor):
         return x * torch.sigmoid(1.702 * x)
+
+
+###############################################################
 
 
 def drop_path(

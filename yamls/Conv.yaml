@@ -3,8 +3,8 @@ model:
   params:
     depth: 1
     num_heads: 4
-    mlp_ratio: 6.0
-    drop_rate: 0.1
+    mlp_ratio: 4.0
+    drop_rate: 0.2
     num_classes: 10
     head_bias: False
     patch_embedding:
@@ -28,7 +28,7 @@ optimizer:
     weight_decay: 0.01
 
 training:
-  num_epochs: 4
+  num_epochs: 3
   loss: "cross entropy"
 
 dataset:

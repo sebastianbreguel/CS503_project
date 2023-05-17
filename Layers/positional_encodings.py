@@ -1,5 +1,9 @@
+import math
+from itertools import repeat
+
 import torch
 import torch.nn as nn
+from einops import rearrange
 
 
 class SineCosinePosEmbedding(nn.Module):
@@ -51,3 +55,22 @@ class SineCosinePosEmbedding(nn.Module):
         batch_size = x.size(0)
         pos_emb = self.pos_emb.repeat(batch_size, 1, 1)
         return pos_emb
+
+
+class relativePos(nn.Module):
+    def __init__(self, dim, num_heads, head_dim):
+        super().__init__()
+        self.head_dim = head_dim
+        self.max_length = 1028
+        self.Er = torch.randn(
+            [num_heads, self.max_length, self.head_dim],
+            requires_grad=True,
+        )
+
+    def forward(self, q, N, transpose=True):
+        embedding_start = self.max_length - N
+        Er = self.Er[:, embedding_start:, :].unsqueeze(0)
+        if transpose:
+            Er = Er.transpose(-1, -2)
+        QEr = torch.matmul(q, Er.to(q.device))
+        return QEr

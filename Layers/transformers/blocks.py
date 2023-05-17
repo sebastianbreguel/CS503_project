@@ -6,7 +6,8 @@ import torch.nn as nn
 # import drop path from folder layers
 from Layers.helper import DropPath
 
-from .attention import Attention, MultiDPHConvHeadAttention, RobustAttention
+from .attention import (Attention, AxialAttention, MultiDPHConvHeadAttention,
+                        RobustAttention)
 from .mlp import Mlp
 
 
@@ -133,7 +134,7 @@ class CustomBlock(nn.Module):
         drop=0.0,
         mlp_ratio=4.0,
         activavtion=nn.GELU,
-        attention=MultiDPHConvHeadAttention,
+        attention=AxialAttention,
     ):
         """
         Transformer encoder block with a custom Attention layer.
@@ -151,8 +152,9 @@ class CustomBlock(nn.Module):
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
+        self.dropPath = DropPath(drop_prob=drop)
 
     def forward(self, x, mask=None):
-        X_a = x + self.attention(self.LN_1(x), mask=mask)
-        X_b = X_a + self.MLP(self.LN_2(X_a))
+        X_a = x + self.dropPath(self.attention(self.LN_1(x), mask=mask))
+        X_b = X_a + self.dropPath(self.MLP(self.LN_2(X_a)))
         return X_b
