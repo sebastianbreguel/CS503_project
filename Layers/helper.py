@@ -7,7 +7,7 @@ import torch.nn as nn
 
 
 class LayerNorm(nn.Module):
-    def __init__(self, dim, eps=1e-6):
+    def __init__(self, dim, eps=1e-6) -> None:
         super().__init__()
         self.norm = nn.LayerNorm(dim, eps=eps)
 
@@ -20,7 +20,7 @@ class RMSNorm(nn.Module):
     "Root Mean Square Layer Normalization (RMSNorm)" -> https://arxiv.org/pdf/1910.07467.pdf
     """
 
-    def __init__(self, dim, eps=1e-8):
+    def __init__(self, dim, eps=1e-8) -> None:
         super().__init__()
         self.eps = eps
         self.dim = dim
@@ -40,7 +40,7 @@ class DeepNormalize(nn.Module):
     DeepNormalize: An Efficient Normalization Method for Deep Learning
     """
 
-    def __init__(self, alpha):
+    def __init__(self, alpha) -> None:
         super().__init__()
         self.alpha = alpha
         self.layerNorm = nn.LayerNorm()
@@ -55,7 +55,7 @@ class DeepNormalize(nn.Module):
 
 
 class SquaredRelu(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.relu = nn.ReLU()
 
@@ -65,7 +65,7 @@ class SquaredRelu(nn.Module):
 
 
 class Swish(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.sigmoid = nn.Sigmoid()
 
@@ -74,7 +74,7 @@ class Swish(nn.Module):
 
 
 class SwiGLU(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.swish = nn.Swish()
 
@@ -83,7 +83,7 @@ class SwiGLU(nn.Module):
 
 
 class GeGlu(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.gelu = nn.GELU()
 
@@ -127,7 +127,7 @@ def drop_path(
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks)."""
 
-    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
+    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True) -> None:
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
         self.scale_by_keep = scale_by_keep

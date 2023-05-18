@@ -177,7 +177,7 @@ class BreguiT(nn.Module):
         )
 
     def forward(self, x):
-        x = self.PrelayerNorm(x)
+        # x = self.PrelayerNorm(x)
 
         proj = self.patch_embed(x)
 

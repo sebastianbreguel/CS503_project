@@ -1,3 +1,4 @@
+import math
 from collections import OrderedDict
 
 import torch
@@ -11,7 +12,7 @@ from Layers.positional_encodings import relativePos
 
 # Baseline
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         """
         Original Self-Attention Layer from https://arxiv.org/pdf/1706.03762.pdf
 
@@ -26,17 +27,17 @@ class Attention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
 
-        self.Q = nn.Linear(dim, dim, bias=False)
-        self.K = nn.Linear(dim, dim, bias=False)
-        self.V = nn.Linear(dim, dim, bias=False)
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
 
         self.softmax = nn.Softmax(dim=-1)
-        self.attention_dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
@@ -59,8 +60,7 @@ class Attention(nn.Module):
             mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
             attn = attn.masked_fill(mask == 0, float("-inf"))
 
-        attn = self.softmax(attn)
-        attn = self.attention_dropout(attn)
+        attn = self.dropout(self.softmax(attn))
 
         x = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
         x = self.proj(x)
@@ -70,7 +70,7 @@ class Attention(nn.Module):
 
 # Convolutional Proyection
 class ConvAttention(nn.Module):
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         """
         Self-attention layer for Convolutional Proyection https://arxiv.org/pdf/2103.15808.pdf
         Source: https://github.com/leoxiaobin/CvT/tree/main
@@ -90,9 +90,9 @@ class ConvAttention(nn.Module):
         self.conv_proj_k = self._build_projection(dim, dim, 3, 2, 2, "dw_bn")
         self.conv_proj_v = self._build_projection(dim, dim, 3, 2, 2, "dw_bn")
 
-        self.Q = nn.Linear(dim, dim, bias=False)
-        self.K = nn.Linear(dim, dim, bias=False)
-        self.V = nn.Linear(dim, dim, bias=False)
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)
@@ -166,7 +166,7 @@ class ConvAttention(nn.Module):
 
         return q, k, v
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
@@ -214,11 +214,7 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
     source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
-    def __init__(self, heads: int, dim: int, kernel_size: int = 3):
-        """
-        * `heads` is the number of heads
-        * `d_k` is the number of channels in each head
-        """
+    def __init__(self, heads: int, dim: int, kernel_size: int = 3) -> None:
         super().__init__()
         self.kernel_size = kernel_size
         self.heads = heads
@@ -243,9 +239,7 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
 
         B, _, N = x.shape
 
-        # 1D convolution accepts input of the form `[N, channels, sequence]`
         x = self.conv(x)
-
         # Crop the right most `kernel_size - 1` results since we padded both sides
         x = x[:, :, : -(self.kernel_size - 1)]
         x = x.view(B, self.heads, self.head_dim, N).permute(3, 0, 1, 2)
@@ -261,7 +255,7 @@ class MultiDPHConvHeadAttention(nn.Module):
     source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         super().__init__()
 
         self.num_heads = num_heads
@@ -283,7 +277,7 @@ class MultiDPHConvHeadAttention(nn.Module):
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
@@ -321,7 +315,7 @@ class RobustAttention(nn.Module):
     source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
     """
 
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         """
         Self-attention layer.
 
@@ -336,9 +330,9 @@ class RobustAttention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
 
-        self.Q = nn.Linear(dim, dim, bias=False)
-        self.K = nn.Linear(dim, dim, bias=False)
-        self.V = nn.Linear(dim, dim, bias=False)
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
         self.W = nn.Parameter(
             torch.randn(256, 256), requires_grad=True  # TODO see how to obtain the N
         )  # learnable paramter to learn the position encoding
@@ -349,7 +343,7 @@ class RobustAttention(nn.Module):
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
@@ -392,7 +386,7 @@ class AxialAttention(nn.Module):
 
     """
 
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0):
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         """
 
         params:
@@ -407,9 +401,9 @@ class AxialAttention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
 
-        self.Q = nn.Linear(dim, dim, bias=False)
-        self.K = nn.Linear(dim, dim, bias=False)
-        self.V = nn.Linear(dim, dim, bias=False)
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)
@@ -421,7 +415,7 @@ class AxialAttention(nn.Module):
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
-    def forward(self, x, mask=None):
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
         params:
             :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
@@ -460,3 +454,140 @@ class AxialAttention(nn.Module):
         x = self.proj(x)
 
         return x
+
+
+class ALiBiAttention(nn.Module):
+    """
+    Attention with Linear Biases (ALiBi) https://arxiv.org/pdf/2108.12409.pdf
+    - source: https://github.com/jaketae/alibi/blob/main/alibi/attention.py
+    """
+
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
+        super().__init__()
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim**-0.5
+        self.attention_dropout = nn.Dropout(dropout)
+        self.m = self.get_alibi_slope(self.num_heads)
+
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
+
+        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
+
+    def get_relative_positions(self, seq_len: int) -> torch.tensor:
+        x = torch.arange(seq_len)[None, :]
+        y = torch.arange(seq_len)[:, None]
+        return x - y
+
+    def get_alibi_slope(self, num_heads):
+        x = (2**8) ** (1 / num_heads)
+        return (
+            torch.tensor([1 / x ** (i + 1) for i in range(num_heads)])
+            .unsqueeze(-1)
+            .unsqueeze(-1)
+        )
+
+    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
+        B, N, C = x.shape
+
+        q, k, v = self.Q(x), self.K(x), self.V(x)
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+
+        bias = (self.m * self.get_relative_positions(N)).unsqueeze(0).to(q.device)
+
+        score = torch.matmul(q, k.transpose(-1, -2)) / self.scale + bias
+
+        attn = F.softmax(score, dim=-1)
+        attn = self.attention_dropout(attn)
+
+        out = torch.matmul(attn, v)
+        out = out.transpose(1, 2).contiguous().view(B, N, C)
+
+        out = self.attention_dropout(out)
+        out = self.proj(out)
+
+        return out
+
+
+class RoformerAttention(nn.Module):
+    """
+     RoFormer: Enhanced Transformer with Rotary Position Embedding https://arxiv.org/pdf/2104.09864.pdf
+    - Source: https://github.com/singaln/Roformer_Simlarity/blob/master/Rotransformer.py
+    """
+
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
+        super().__init__()
+
+        self.num_heads = num_heads
+        self.dim = dim
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim**-0.5
+
+        self.Q = nn.Linear(dim, dim, bias)
+        self.K = nn.Linear(dim, dim, bias)
+        self.V = nn.Linear(dim, dim, bias)
+
+        self.softmax = nn.Softmax(dim=-1)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def transpose_for_scores(self, x):
+        new_x_shape = x.size()[:-1] + (
+            self.num_heads,
+            self.attention_head_size,
+        )
+        x = x.view(*new_x_shape)
+        return x.permute(0, 2, 1, 3)
+
+    def sinusoidal_position_embeddings(self, inputs):
+        output_dim = self.dim // self.num_heads
+        seq_len = inputs.size(1)
+        position_ids = torch.arange(
+            0, seq_len, dtype=torch.float32, device=inputs.device
+        )
+
+        indices = torch.arange(0, output_dim // 2, dtype=torch.float32)
+        indices = torch.pow(10000.0, -2 * indices / output_dim).to(inputs.device)
+        embeddings = torch.einsum("n,d->nd", position_ids, indices)
+        embeddings = torch.stack([embeddings.sin(), embeddings.cos()], dim=-1)
+        embeddings = torch.reshape(embeddings, (seq_len, output_dim))
+        embeddings = embeddings[None, None, :, :]
+        cos_pos = embeddings[..., 1::2]
+        sin_pos = embeddings[..., ::2]
+        cos_pos = cos_pos.view
+
+        cos_pos = torch.repeat_interleave(embeddings[..., 1::2], 2, dim=-1)
+        sin_pos = torch.repeat_interleave(embeddings[..., ::2], 2, dim=-1)
+        return cos_pos, sin_pos
+
+    def embed_value(self, x, cos_pos, sin_pos):
+        xw2 = torch.stack([-x[..., 1::2], x[..., ::2]], dim=-1).reshape_as(x)
+        x = x * cos_pos + xw2 * sin_pos
+        return x
+
+    def forward(self, x, mask=None):
+        B, N, C = x.shape
+
+        q, k, v = self.Q(x), self.K(x), self.V(x)
+        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
+
+        cos_pos, sin_pos = self.sinusoidal_position_embeddings(x)
+        q = self.embed_value(q, cos_pos, sin_pos)
+        k = self.embed_value(k, cos_pos, sin_pos)
+
+        attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+
+        if mask is not None:
+            attn = attn + mask
+
+        attn = self.dropout(self.softmax(attn))
+
+        attn = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
+
+        return attn

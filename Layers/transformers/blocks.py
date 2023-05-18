@@ -6,13 +6,16 @@ import torch.nn as nn
 # import drop path from folder layers
 from Layers.helper import DropPath
 
-from .attention import (Attention, AxialAttention, MultiDPHConvHeadAttention,
-                        RobustAttention)
+from .attention import (ALiBiAttention, Attention, AxialAttention,
+                        MultiDPHConvHeadAttention, RobustAttention,
+                        RoformerAttention)
 from .mlp import Mlp
 
 
 class Block(nn.Module):
-    def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0, activation=nn.GELU):
+    def __init__(
+        self, dim, num_heads, drop=0.0, mlp_ratio=4.0, activation=nn.GELU
+    ) -> None:
         """
         Transformer encoder block.
 
@@ -59,7 +62,7 @@ class Parallel_blocks(nn.Module):
         mlp_ratio=4.0,
         activation=nn.GELU,
         num_parallel=2,
-    ):
+    ) -> None:
         """
         Transformer encoder block.
 
@@ -134,8 +137,8 @@ class CustomBlock(nn.Module):
         drop=0.0,
         mlp_ratio=4.0,
         activavtion=nn.GELU,
-        attention=AxialAttention,
-    ):
+        attention=RoformerAttention,
+    ) -> None:
         """
         Transformer encoder block with a custom Attention layer.
 

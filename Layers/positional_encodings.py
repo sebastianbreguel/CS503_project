@@ -20,7 +20,7 @@ class SineCosinePosEmbedding(nn.Module):
         embed_dim: int = 1024,
         temperature: float = 10000.0,
         requires_grad: bool = False,
-    ):
+    ) -> None:
         super().__init__()
         self.height = height
         self.width = width
@@ -58,7 +58,7 @@ class SineCosinePosEmbedding(nn.Module):
 
 
 class relativePos(nn.Module):
-    def __init__(self, dim, num_heads, head_dim):
+    def __init__(self, dim, num_heads, head_dim) -> None:
         super().__init__()
         self.head_dim = head_dim
         self.max_length = 1028

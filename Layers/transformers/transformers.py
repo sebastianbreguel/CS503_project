@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from .blocks import Block, CustomBlock, Parallel_blocks
@@ -10,7 +11,7 @@ class Transformer(nn.Module):
 
     def __init__(
         self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
-    ):
+    ) -> None:
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
         self.depth = depth
@@ -21,7 +22,7 @@ class Transformer(nn.Module):
                 Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
             )
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
             x = block(x)
         return x
@@ -36,7 +37,7 @@ class ParallelTransformers(nn.Module):
 
     def __init__(
         self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
-    ):
+    ) -> None:
         super().__init__()
         self.layers = nn.ModuleList([])
         self.parallel_blocks = 3
@@ -60,7 +61,7 @@ class ParallelTransformers(nn.Module):
                 Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
             )
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
             x = block(x)
         return x
@@ -81,7 +82,7 @@ class CustomTransformer(nn.Module):
         drop_rate=0.0,
         masked_block=None,
         block=CustomBlock,
-    ):
+    ) -> None:
         super().__init__()
         self.layers = nn.ModuleList([])
         self.depth = depth
@@ -92,7 +93,7 @@ class CustomTransformer(nn.Module):
                 block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
             )
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
             x = block(x)
         return x

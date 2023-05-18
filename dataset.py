@@ -2,9 +2,29 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageNet
+from torchvision.datasets import (CIFAR10, CIFAR100, MNIST, ImageFolder,
+                                  ImageNet)
 
 from params import BATCH_SIZE
+
+CORRUPTIONS = [
+    "identity",
+    "shot_noise",
+    "impulse_noise",
+    "glass_blur",
+    "motion_blur",
+    "shear",
+    "scale",
+    "rotate",
+    "brightness",
+    "translate",
+    "stripe",
+    "fog",
+    "spatter",
+    "dotted_line",
+    "zigzag",
+    "canny_edges",
+]
 
 
 def get_dataset(
@@ -28,6 +48,19 @@ def get_dataset(
         dataset_test = MNIST(
             root="./data", train=False, download=True, transform=transform
         )
+
+    elif name == "MNIST-C":
+        transform = torchvision.transforms.Compose(
+            [
+                torchvision.transforms.ToTensor(),
+            ]
+        )
+        folder = "./data/mnist-c/"
+        dataset_train_val = ImageFolder(
+            root=folder + "train",
+            transform=transform,
+        )
+
     elif name == "CIFAR10":
         transform = transforms.Compose(
             [

@@ -28,7 +28,7 @@ optimizer:
     weight_decay: 0.01
 
 training:
-  num_epochs: 3
+  num_epochs: 1
   loss: "cross entropy"
 
 dataset:

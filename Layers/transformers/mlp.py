@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -8,7 +9,9 @@ class Mlp(nn.Module):
     trad
     """
 
-    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0):
+    def __init__(
+        self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0
+    ) -> None:
         """
         params:
             :dim: Dimensionality of each token
@@ -26,5 +29,5 @@ class Mlp(nn.Module):
             nn.Dropout(dropout),
         )
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         return self.mlp(x)  # returns output of the same dimension as the input

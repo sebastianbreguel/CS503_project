@@ -2,15 +2,15 @@ model:
   name: "ViT"
   params:
     depth: 2
-    num_heads: 2
+    num_heads: 4
     mlp_ratio: 4.0
-    drop_rate: 0.0
+    drop_rate: 0.1
     num_classes: 10
     head_bias: False
     patch_embedding:
       type: "NaivePatchEmbedding"
       params:
-        embed_dim: 16
+        embed_dim: 192
         in_channels: 3
         patch_size: 2
     positional_encoding:

@@ -8,7 +8,7 @@ MODELS = ["ViT", "BreguiT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
 
-def get_model(config):
+def get_model(config) -> torch.nn.Module:
     if config["model"]["name"] == "ViT":
         model = ViT(**config["model"]["params"])
 
@@ -27,7 +27,7 @@ def get_model(config):
 
 
 # parameters will be a generator
-def get_optimizer(config, parameters):
+def get_optimizer(config, parameters) -> torch.optim.Optimizer:
     # optimizer
     if config["optimizer"]["name"] == "AdamW":
         optimizer = torch.optim.AdamW(parameters, **config["optimizer"]["params"])
@@ -46,7 +46,7 @@ def get_optimizer(config, parameters):
     return optimizer
 
 
-def get_device():
+def get_device() -> torch.device:
     if torch.cuda.is_available():
         device = torch.device("cuda")
 

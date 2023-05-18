@@ -9,7 +9,9 @@ class NaivePatchEmbed(nn.Module):
     Basic Patch Embedding Module. Same as in the transformers graded notebook.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
+    def __init__(
+        self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None
+    ) -> None:
         """
         Image to Patch Embedding.
 
@@ -66,7 +68,7 @@ class ConvEmbedding(nn.Module):
     source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
-    def __init__(self, in_channels, embed_dim, out_channels, patch_size):
+    def __init__(self, in_channels, embed_dim, out_channels, patch_size) -> None:
         """
         params:
             :in_channels: Number of input channels
@@ -106,7 +108,7 @@ class Image2Tokens(nn.Module):
     Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
     """
 
-    def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
+    def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2) -> None:
         super().__init__()
         self.conv = nn.Conv2d(
             in_chans,
@@ -133,7 +135,7 @@ class convHeadPooling(nn.Module):
     source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
-    def __init__(self, in_feature, out_feature, stride=2, padding_mode="zeros"):
+    def __init__(self, in_feature, out_feature, stride=2, padding_mode="zeros") -> None:
         super().__init__()
 
         self.conv = nn.Conv2d(
@@ -160,7 +162,7 @@ class earlyConv(nn.Module):
     using this should reduce by one the amount of heads of the transformer
     """
 
-    def __init__(self, channels, dim, emb_dropout=0.0):
+    def __init__(self, channels, dim, emb_dropout=0.0) -> None:
         super().__init__()
         n_filter_list = (
             channels,
