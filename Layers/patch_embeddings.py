@@ -78,6 +78,7 @@ class ConvEmbedding(nn.Module):
 
         self.out_channels = out_channels
         self.patch_size = patch_size
+        self.embed_dim = embed_dim
 
         self.proj = nn.Sequential(
             nn.Conv2d(
@@ -96,10 +97,15 @@ class ConvEmbedding(nn.Module):
         return self.patch_size
 
     def get_embed_dim(self):
-        return self.out_channels
+        return self.embed_dim
 
     def forward(self, x):
-        x = self.proj(x).flatten(2).transpose(-1, -2)
+        x = (
+            self.proj(x)
+            .flatten(2)
+            .transpose(-1, -2)
+            .to(memory_format=torch.contiguous_format)
+        )
         return x
 
 
@@ -128,37 +134,12 @@ class Image2Tokens(nn.Module):
         return x
 
 
-class convHeadPooling(nn.Module):
-
-    """
-    RVT: https://arxiv.org/pdf/2106.13731.pdf
-    source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
-    """
-
-    def __init__(self, in_feature, out_feature, stride=2, padding_mode="zeros") -> None:
-        super().__init__()
-
-        self.conv = nn.Conv2d(
-            in_feature,
-            out_feature,
-            kernel_size=stride + 1,
-            padding=stride // 2,
-            stride=stride,
-            padding_mode=padding_mode,
-            groups=in_feature,
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        return x
-
-
 class earlyConv(nn.Module):
     """
-    3x3 conv, stride 1, 5 conv layers per https://arxiv.org/pdf/2106.14881v2.pdf
+    Early Convolutions Help Transformers See Better https://arxiv.org/pdf/2106.14881v2.pdf
     source: https://github.com/Jack-Etheredge/early_convolutions_vit_pytorch/blob/main/vitc/early_convolutions.py
 
-
+    3x3 conv, stride 1, 5 conv layers per block, 2 blocks
     using this should reduce by one the amount of heads of the transformer
     """
 
@@ -213,3 +194,57 @@ class earlyConv(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
+
+
+"""
+ResT: An Efficient Transformer for Visual Recognition  https://arxiv.org/pdf/2105.13677.pdf
+-source: https://github.com/wofmanaf/ResT/blob/main/models/rest.py
+
+basic patch membedding over 3 convs
+"""
+
+
+class PA(nn.Module):
+    def __init__(self, dim):
+        super().__init__()
+        self.pa_conv = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        return x * self.sigmoid(self.pa_conv(x))
+
+
+class BasicStem(nn.Module):
+    def __init__(self, in_ch=3, out_ch=64, with_pos=False):
+        super(BasicStem, self).__init__()
+        hidden_ch = out_ch // 2
+        self.conv1 = nn.Conv2d(
+            in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False
+        )
+        self.norm1 = nn.BatchNorm2d(hidden_ch)
+        self.conv2 = nn.Conv2d(
+            hidden_ch, hidden_ch, kernel_size=3, stride=1, padding=1, bias=False
+        )
+        self.norm2 = nn.BatchNorm2d(hidden_ch)
+        self.conv3 = nn.Conv2d(
+            hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False
+        )
+
+        self.act = nn.ReLU(inplace=True)
+        self.with_pos = with_pos
+        if self.with_pos:
+            self.pos = PA(out_ch)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.act(x)
+
+        x = self.conv2(x)
+        x = self.norm2(x)
+        x = self.act(x)
+
+        x = self.conv3(x)
+        if self.with_pos:
+            x = self.pos(x)
+        return x

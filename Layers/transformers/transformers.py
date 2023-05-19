@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from .blocks import Block, CustomBlock, Parallel_blocks
+from .blocks import Block, CustomBlock, Parallel_blocks, RobustBlock
 
 
 class Transformer(nn.Module):
@@ -96,4 +96,50 @@ class CustomTransformer(nn.Module):
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
             x = block(x)
+        return x
+
+
+class RVTransformer(nn.Module):
+    """
+    Transformers Blocks for the RVT model https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
+
+    """
+
+    def __init__(
+        self,
+        dim,
+        depth,
+        num_heads=8,
+        mlp_ratio=4.0,
+        drop_rate=0.0,
+        masked_block=None,
+        block=RobustBlock,
+    ) -> None:
+        super().__init__()
+        self.layers = nn.ModuleList([])
+        self.depth = depth
+        self.blocks = nn.ModuleList()
+        self.pooling = nn.ModuleList()
+
+        for _ in range(depth):
+            self.blocks.append(
+                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
+            self.pooling.append(
+                nn.Conv2d(
+                    dim,
+                    dim,
+                    kernel_size=2 + 1,
+                    padding=2 // 2,
+                    stride=2,
+                    padding_mode="zeros",
+                    groups=dim,
+                )
+            )
+
+    def forward(self, x) -> torch.Tensor:
+        for state in range(self.depth):
+            x = self.blocks[state](x)
+            x = self.pooling[state](x)
+
         return x

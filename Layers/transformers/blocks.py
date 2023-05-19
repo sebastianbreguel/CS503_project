@@ -6,15 +6,27 @@ import torch.nn as nn
 # import drop path from folder layers
 from Layers.helper import DropPath
 
-from .attention import (ALiBiAttention, Attention, AxialAttention,
-                        MultiDPHConvHeadAttention, RobustAttention,
-                        RoformerAttention)
-from .mlp import Mlp
+from .attention import (
+    ALiBiAttention,
+    Attention,
+    AxialAttention,
+    LinAngularAttention,
+    MultiDPHConvHeadAttention,
+    RobustAttention,
+    RoformerAttention,
+)
+from .mlp import Mlp, RobustMlp
 
 
 class Block(nn.Module):
     def __init__(
-        self, dim, num_heads, drop=0.0, mlp_ratio=4.0, activation=nn.GELU
+        self,
+        dim,
+        num_heads,
+        drop=0.0,
+        mlp_ratio=4.0,
+        activation=nn.GELU,
+        norm_layer=nn.LayerNorm,
     ) -> None:
         """
         Transformer encoder block.
@@ -29,15 +41,15 @@ class Block(nn.Module):
         self.MLP = Mlp(
             dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
         )
-        self.LN_1 = nn.LayerNorm(dim)
-        self.LN_2 = nn.LayerNorm(dim)
+        self.LN_1 = norm_layer(dim)
+        self.LN_2 = norm_layer(dim)
         self.drop = nn.Dropout(drop)
         self.dropPath = DropPath(drop_prob=drop)
 
     def forward(self, x, mask=None):
-        X_a = x + self.dropPath(self.attention(self.LN_1(x), mask=mask))
-        X_b = X_a + self.dropPath(self.MLP(self.LN_2(X_a)))
-        return X_b
+        x = x + self.dropPath(self.attention(self.LN_1(x), mask=mask))
+        x = x + self.dropPath(self.MLP(self.LN_2(x)))
+        return x
 
 
 class Parallel_blocks(nn.Module):
@@ -137,7 +149,8 @@ class CustomBlock(nn.Module):
         drop=0.0,
         mlp_ratio=4.0,
         activavtion=nn.GELU,
-        attention=RoformerAttention,
+        attention=LinAngularAttention,
+        mlp=Mlp,
     ) -> None:
         """
         Transformer encoder block with a custom Attention layer.
@@ -149,7 +162,46 @@ class CustomBlock(nn.Module):
         super().__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(
+        self.MLP = mlp(
+            dim, dropout=drop, activation_function=activavtion, mlp_ratio=mlp_ratio
+        )
+        self.LN_1 = nn.LayerNorm(dim)
+        self.LN_2 = nn.LayerNorm(dim)
+        self.drop = nn.Dropout(drop)
+        self.dropPath = DropPath(drop_prob=drop)
+
+    def forward(self, x, mask=None):
+        X_a = x + self.dropPath(self.attention(self.LN_1(x), mask=mask))
+        X_b = X_a + self.dropPath(self.MLP(self.LN_2(X_a)))
+        return X_b
+
+
+class RobustBlock(nn.Module):
+    """
+    https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
+    """
+
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        drop=0.0,
+        mlp_ratio=4.0,
+        activavtion=nn.GELU,
+        attention=RobustAttention,
+        mlp=RobustMlp,
+    ) -> None:
+        """
+        Transformer encoder block with a custom Attention layer.
+
+        params:
+            :dim: Dimensionality of each token
+            :mlp_ratio: MLP hidden dimensionality multiplier
+        """
+        super().__init__()
+
+        self.attention = attention(dim, dropout=drop, num_heads=num_heads)
+        self.MLP = mlp(
             dim, dropout=drop, activation_function=activavtion, mlp_ratio=mlp_ratio
         )
         self.LN_1 = nn.LayerNorm(dim)

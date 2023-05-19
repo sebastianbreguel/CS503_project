@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from models import BreguiT, ViT
+from models import BreguiT, ViT, RVT
 
 MODELS = ["ViT", "BreguiT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -14,6 +14,9 @@ def get_model(config) -> torch.nn.Module:
 
     elif config["model"]["name"] == "BreguiT":
         model = BreguiT(**config["model"]["params"])
+
+    elif config["model"]["name"] == "RVT":
+        model = RVT(**config["model"]["params"])
 
     else:
         return NotImplementedError(

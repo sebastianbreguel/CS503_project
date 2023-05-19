@@ -55,11 +55,8 @@ here is the list of datasets with the subset of variations we are going to use:
 
 Review(posible implementation):
 
-- [MedVit](https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py)
-- [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://github.com/Omid-Nejati/Locality-iN-Locality)
-- [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
-- Making Vision Transformers Efficient from A Token Sparsification View
-- https://arxiv.org/pdf/2203.16329.pdf
+- [MedVit](https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py) - [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://github.com/Omid-Nejati/Locality-iN-Locality)
+- https://arxiv.org/pdf/2105.13677.pdf
 
 Review for implementation and future ideas:
 
@@ -100,6 +97,7 @@ python main.py
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
 - [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881.pdf)
 - [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
+- [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
 
 NLP field:
 

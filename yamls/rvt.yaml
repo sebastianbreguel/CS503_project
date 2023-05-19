@@ -1,8 +1,8 @@
 model:
-  name: "ViT"
+  name: "RVT"
   params:
-    depth: 2
-    num_heads: 4
+    depth: 1
+    num_heads: 2
     mlp_ratio: 4.0
     drop_rate: 0.1
     num_classes: 10
@@ -28,7 +28,7 @@ optimizer:
     weight_decay: 0.01
 
 training:
-  num_epochs: 3
+  num_epochs: 2
   loss: "cross entropy"
 
 dataset:

@@ -9,8 +9,6 @@ fi
 # Run black formatter
 black .
 
-# Run isort
-isort .
 
 # Add changes to git
 git add .
