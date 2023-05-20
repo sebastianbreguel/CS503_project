@@ -2,6 +2,7 @@
 paper_implementations/
 notebooks_from_class/
 
+.DS_Store
 medivit.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
