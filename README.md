@@ -96,10 +96,10 @@ Attentions:
 - [CeiT:Incorporating Convolution Designs into Visual Transformers](https://arxiv.org/abs/2103.11816)
 - [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
 - [Self-Attention with Relative Position Representations](https://arxiv.org/pdf/1803.02155v2.pdf)
-- [TRAIN SHORT, TEST LONG: ATTENTION WITH LINEAR BIASES ENABLES INPUT LENGTH EXTRAPOLATION](https://arxiv.org/pdf/2108.12409.pdf)
 - [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/pdf/2104.09864.pdf)
-- [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
+- [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
+- [Train Short, Test Long: Attention With Linear Biases Enables Input Length Extrapolation](https://arxiv.org/pdf/2108.12409.pdf)
 
 Robustness:
 
