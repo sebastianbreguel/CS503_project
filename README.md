@@ -7,17 +7,19 @@ This is the repository for the CS 503 Visual intelligence: Machines and Minds pr
 You can install the requirements by running `pip install -r requirements.txt`.
 
 ```bash
+
 main.py
 |
-|__📜utils.py  # utils function to create, get, process and run data/metrics/models
-|__📜models.py # model class
-|__📜dataset.py # data class
 |__📜main.py # data class
+|__📜dataset.py # data class
+|__📜models.py # model class
+|__📜utils.py  # utils function to create, get, process and run data/metrics/models
 |
 |__📂Layers
 |   |__📜patch_embeddings.py
 |   |__📜positional_encodings.py
-|   |__📜transformers.py
+|   |__📜helper.py
+|   |__📂transformers.py
 |__📂yamls  #Configurations to run the models
 
 
@@ -59,33 +61,12 @@ Review for implementation and future ideas:
 
 - [Learning a Fourier Transform for Linear Relative Positional Encodings in Transformers](https://paperswithcode.com/paper/learning-a-fourier-transform-for-linear)
 
-### Arguments to run model
+### To run the code
 
-```bash
---dataset: determinate the large of the prefix
-        - MNIST
-        - CIFAR10
-        - CIFAR100
-        - IMAGENET
+You should have an yamls file with the configuration of the model you want to run. running the command:
+`python main.py --config <path_to_yamls_file>`
 
---loss: Loss to train,
-        - CrossEntropyLoss: CE
-        - NLLLoss: NLL
-
---model: Model to train,
-    - ViT
-
---optimizer: Optimizer to train, could be SGD or Adam
-        - Adam
-        - SGD
-        - AdamW
-```
-
-#### Examples
-
-```python
-python main.py
-```
+If you dont provide a path to the yamls file, it will run the default the ViT model.
 
 ## References
 
