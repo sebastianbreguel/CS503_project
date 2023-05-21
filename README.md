@@ -89,21 +89,26 @@ python main.py
 
 ## References
 
-- [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
-- [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
-- [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://arxiv.org/pdf/2301.11553.pdf)
-- [Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation](https://arxiv.org/pdf/2003.07853.pdf)
+Attentions:
 
+- [Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation](https://arxiv.org/pdf/2003.07853.pdf)
+- [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
+- [CeiT:Incorporating Convolution Designs into Visual Transformers](https://arxiv.org/abs/2103.11816)
+- [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
+- [Self-Attention with Relative Position Representations](https://arxiv.org/pdf/1803.02155v2.pdf)
 - [TRAIN SHORT, TEST LONG: ATTENTION WITH LINEAR BIASES ENABLES INPUT LENGTH EXTRAPOLATION](https://arxiv.org/pdf/2108.12409.pdf)
 - [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/pdf/2104.09864.pdf)
-
 - [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
-- [ResT: An Efficient Transformer for Visual Recognition](https://arxiv.org/pdf/2105.13677.pdf)
-- [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881v2.pdf)
-- [CeiT](https://arxiv.org/abs/2103.11816)
-- [Attention is all You need](https://arxiv.org/pdf/1706.03762.pdf)
-- [Self-Attention with Relative Position Representations](https://arxiv.org/pdf/1803.02155v2.pdf)
-- [Original Vision Transformer Model](https://arxiv.org/pdf/2010.11929.pdf)
 - [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
+
+Robustness:
+
 - [MedViT: A Robust Vision Transformer for Generalized Medical Image Classification](https://arxiv.org/abs/2302.09462)
--
+- [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://arxiv.org/pdf/2301.11553.pdf)
+
+Others:
+
+- [Attention is all You need](https://arxiv.org/pdf/1706.03762.pdf)
+- [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881v2.pdf)
+- [Original Vision Transformer Model](https://arxiv.org/pdf/2010.11929.pdf)
+- [ResT: An Efficient Transformer for Visual Recognition](https://arxiv.org/pdf/2105.13677.pdf)
