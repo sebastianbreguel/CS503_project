@@ -54,6 +54,10 @@ class SineCosinePosEmbedding(nn.Module):
 
 
 class RelativePos(nn.Module):
+    """
+    Self-Attention with Relative Position Representations:  https://arxiv.org/pdf/1803.02155v2.pdf
+    """
+
     def __init__(self, dim, num_heads, head_dim) -> None:
         super(RelativePos, self).__init__()
         self.head_dim = head_dim

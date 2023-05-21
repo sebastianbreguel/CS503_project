@@ -6,8 +6,8 @@ import torch.nn as nn
 from einops import rearrange
 
 from Layers import (
-    ECB,
-    LTB,
+    ECBlock,
+    LTBlock,
     BasicStem,
     ConvEmbedding,
     CustomTransformer,
@@ -205,7 +205,8 @@ class BreguiT(nn.Module):
 
 class RVT(nn.Module):
     """
-    Personal version of Vision transformers
+    Robust Vision Transformerhttps://arxiv.org/pdf/2105.07926.pdf
+    source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
     """
 
     def __init__(
@@ -305,6 +306,11 @@ class RVT(nn.Module):
 
 
 class MedViT(nn.Module):
+    """
+    MedViT: A Robust Vision Transformer for Generalized Medical Image Classification https://arxiv.org/abs/2302.09462
+    -source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
+    """
+
     def __init__(
         self,
         stem_chs,
@@ -329,7 +335,7 @@ class MedViT(nn.Module):
         for stage_id in range(len(depths)):
             for ecb_id in range(ecbs):
                 self.features.append(
-                    ECB(
+                    ECBlock(
                         in_channels=input_channel,
                         out_channels=input_channel,
                         drop=drop_rate,
@@ -339,7 +345,7 @@ class MedViT(nn.Module):
                 )
             for ltb_id in range(ltbs):
                 self.features.append(
-                    LTB(
+                    LTBlock(
                         in_channels=input_channel,
                         out_channels=input_channel,
                         sr_ratio=2,

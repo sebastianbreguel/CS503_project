@@ -5,8 +5,6 @@ import torch.nn as nn
 class Mlp(nn.Module):
     """
     Base two layer MLP. From the transformers notebook.
-
-    trad
     """
 
     def __init__(
@@ -35,7 +33,8 @@ class Mlp(nn.Module):
 
 class RobustMlp(nn.Module):
     """
-    https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
+    Robust MLP from the Robust Vision Transformer paper https://arxiv.org/pdf/2105.07926.pdf
+    - source https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
     def __init__(

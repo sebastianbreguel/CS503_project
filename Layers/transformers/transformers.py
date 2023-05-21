@@ -7,7 +7,7 @@ from .blocks import Block, CustomBlock, ECBlock, LTBlock, Parallel_blocks, Robus
 class Transformer(nn.Module):
     """
     Initial transformer class https://arxiv.org/abs/1706.03762
-    -source
+    Same as in the transformers graded notebook.
     """
 
     def __init__(
@@ -104,8 +104,8 @@ class CustomTransformer(nn.Module):
 
 class RVTransformer(nn.Module):
     """
-    Transformers Blocks for the RVT model https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
-    - soruce
+    Transformers Blocks for the RVT model https://arxiv.org/pdf/2105.07926.pdf
+    - source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
     """
 
     def __init__(
@@ -149,9 +149,9 @@ class RVTransformer(nn.Module):
 
 class MedVitTransformer(nn.Module):
     """
-    Transformers Blocks for the MedViT model
+    Transformers "Phase/Blocks" for the MedViT model https://arxiv.org/abs/2302.09462
 
-    -source
+    -source: https://github.com/Omid-Nejati/MedViT/tree/main
     """
 
     def __init__(

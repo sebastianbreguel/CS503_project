@@ -113,7 +113,7 @@ class ConvAttention(nn.Module):
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
         """
         Self-attention layer for Convolutional Proyection https://arxiv.org/pdf/2103.15808.pdf
-        Source: https://github.com/leoxiaobin/CvT/tree/main
+        - Source: https://github.com/leoxiaobin/CvT/tree/main
 
         params:
             :dim: Dimensionality of each token
@@ -203,11 +203,8 @@ class ConvAttention(nn.Module):
 # proyecyion and then convolution
 class SpatialDepthWisePerHeadConvolution(nn.Module):
     """
-    ## Spatial Depth Wise Per Head Convolution
-
-
-    Implementation of the paper: https://arxiv.org/pdf/2109.08668.pdf
-    source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
+    Spatial Depth Wise Per Head Convolution https://arxiv.org/pdf/2109.08668.pdf
+    - source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
     def __init__(self, heads: int, dim: int, kernel_size: int = 3) -> None:
@@ -248,10 +245,8 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
 
 class MultiDPHConvHeadAttention(nn.Module):
     """
-    ## Multi-per-Head-Depth-wise-Conv-Head Attention
-
-    Implementation of the paper: https://arxiv.org/pdf/2109.08668.pdf
-    source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
+    Multi-per-Head-Depth-wise-Conv-Head Attention  https://arxiv.org/pdf/2109.08668.pdf
+    - source: https://github.com/labmlai/annotated_deep_learning_paper_implementations/blob/master/labml_nn/transformers/primer_ez/variations.py
     """
 
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
@@ -309,9 +304,8 @@ class MultiDPHConvHeadAttention(nn.Module):
 
 class LinAngularAttention(nn.Module):
     """
-    Oficial implementation of the Castling-ViT https://arxiv.org/pdf/2211.10526.pdf
+    Castling-ViT https://arxiv.org/pdf/2211.10526.pdf
     - source: https://github.com/GATECH-EIC/Castling-ViT/blob/main/attention.py
-
     """
 
     def __init__(
@@ -386,9 +380,8 @@ class LinAngularAttention(nn.Module):
 # Av pool on qk
 class EMAttention(nn.Module):
     """
-    Implementation of the Efficient Multi-head Attention https://arxiv.org/pdf/2105.13677.pdf
+    Efficient Multi-head Attention https://arxiv.org/pdf/2105.13677.pdf
     -source: https://github.com/wofmanaf/ResT/blob/main/models/rest.py
-
     """
 
     def __init__(
@@ -445,7 +438,6 @@ class EMAttention(nn.Module):
 
 # Multi-Head Convolution Attention
 class MultiCHA(nn.Module):
-
     """
     Multi-Head Convolutional Attention
     """
@@ -479,7 +471,7 @@ class MultiCHA(nn.Module):
 
 class LocalityFeedForward(nn.Module):
     """
-    implementation of the Localy FNN
+    Localy FNN https://arxiv.org/pdf/2301.11553.pdf
     - source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
     """
 
@@ -540,7 +532,6 @@ class LocalityFeedForward(nn.Module):
 class AxialAttention(nn.Module):
     """
     Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation https://arxiv.org/pdf/2003.07853.pdf
-
     """
 
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
@@ -672,8 +663,7 @@ class ALiBiAttention(nn.Module):
 
 class RelativeAttention(nn.Module):
     """
-    Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation https://arxiv.org/pdf/2003.07853.pdf
-
+    Self-Attention with Relative Position Representations https://arxiv.org/pdf/1803.02155v2.pdf
     """
 
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
@@ -822,8 +812,8 @@ class RoformerAttention(nn.Module):
 class RobustAttention(nn.Module):
 
     """
-    Implementation of the Position-Aware Attention Scaling https://arxiv.org/pdf/2105.07926.pdf
-    source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
+    Position-Aware Attention Scaling https://arxiv.org/pdf/2105.07926.pdf
+    - source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
     """
 
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:

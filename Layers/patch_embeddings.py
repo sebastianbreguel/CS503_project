@@ -173,25 +173,14 @@ class earlyConv(nn.Module):
         x = self.dropout(x)
 
 
-"""
-ResT: An Efficient Transformer for Visual Recognition  https://arxiv.org/pdf/2105.13677.pdf
--source: https://github.com/wofmanaf/ResT/blob/main/models/rest.py
-
-basic patch membedding over 3 convs
-"""
-
-
-class PA(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.pa_conv = nn.Conv2d(dim, dim, kernel_size=3, padding=1, groups=dim)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        return x * self.sigmoid(self.pa_conv(x))
-
-
 class BasicStem(nn.Module):
+    """
+    ResT: An Efficient Transformer for Visual Recognition  https://arxiv.org/pdf/2105.13677.pdf
+    -source: https://github.com/wofmanaf/ResT/blob/main/models/rest.py
+
+    basic patch membedding over 3 convs
+    """
+
     def __init__(self, in_ch=3, out_ch=64, with_pos=False):
         super(BasicStem, self).__init__()
         hidden_ch = out_ch // 2
@@ -210,7 +199,10 @@ class BasicStem(nn.Module):
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
         if self.with_pos:
-            self.pos = PA(out_ch)
+            self.pa_conv = nn.Conv2d(
+                out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch
+            )
+            self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -223,10 +215,43 @@ class BasicStem(nn.Module):
 
         x = self.conv3(x)
         if self.with_pos:
-            x = self.pos(x)
+            x = x * self.sigmoid(self.pa_conv(x))
         return x
 
 
+class MedPatchEmbed(nn.Module):
+    """ "
+    Med patch embedding https://arxiv.org/pdf/2105.13677.pdf
+    -source: https://github.com/wofmanaf/ResT/blob/main/models/rest.py
+    """
+
+    def __init__(self, in_channels, out_channels, stride=1):
+        super(MedPatchEmbed, self).__init__()
+
+        if stride == 2:
+            self.avgpool = nn.AvgPool2d(
+                (2, 2), stride=2, ceil_mode=True, count_include_pad=False
+            )
+            self.conv = nn.Conv2d(
+                in_channels, out_channels, kernel_size=1, stride=1, bias=False
+            )
+            self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
+        elif in_channels != out_channels:
+            self.avgpool = nn.Identity()
+            self.conv = nn.Conv2d(
+                in_channels, out_channels, kernel_size=1, stride=1, bias=False
+            )
+            self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
+        else:
+            self.avgpool = nn.Identity()
+            self.conv = nn.Identity()
+            self.norm = nn.Identity()
+
+    def forward(self, x):
+        return self.norm(self.conv(self.avgpool(x)))
+
+
+# TODO Check if we will use this -> finish implementation
 class PixelEmbed(nn.Module):
     """Image to Pixel Embedding
     - source: https://github.com/Omid-Nejati/Locality-iN-Locality/blob/main/models/tnt.py

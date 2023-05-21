@@ -128,7 +128,10 @@ def drop_path(
 
 
 class DropPath(nn.Module):
-    """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks)."""
+    """
+    Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
+    - source: https://github.com/huggingface/pytorch-image-models/blob/main/timm/layers/drop.py
+    """
 
     def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True) -> None:
         super(DropPath, self).__init__()
@@ -252,6 +255,18 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
 
 
 # for the MedVit transformer
+
+
+def _make_divisible(v, divisor, min_value=None):
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
+
+
 class h_sigmoid(nn.Module):
     def __init__(self, inplace=True):
         super(h_sigmoid, self).__init__()
@@ -271,6 +286,11 @@ class h_swish(nn.Module):
 
 
 class SELayer(nn.Module):
+    """
+    SELayer  https://arxiv.org/abs/2302.09462
+    -source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
+    """
+
     def __init__(self, channel, reduction=4):
         super(SELayer, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
@@ -290,7 +310,10 @@ class SELayer(nn.Module):
 
 # TODO: check this part
 def moex(x, swap_index, norm_type, epsilon=1e-5, positive_only=False):
-    """MoEx operation"""
+    """
+    Moment exchanger patch https://arxiv.org/abs/2302.09462
+    -source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
+    """
     dtype = x.dtype
     x = x.float()
 

@@ -6,7 +6,8 @@ import torch.nn as nn
 from einops import rearrange
 
 # import drop path from folder layers
-from Layers.helper import DropPath
+from Layers.helper import DropPath, _make_divisible
+from Layers.patch_embeddings import MedPatchEmbed
 
 from .attention import (
     ALiBiAttention,
@@ -26,16 +27,6 @@ from .attention import (
 from .mlp import Mlp, RobustMlp
 
 
-def _make_divisible(v, divisor, min_value=None):
-    if min_value is None:
-        min_value = divisor
-    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
-    # Make sure that round down does not go down by more than 10%.
-    if new_v < 0.9 * v:
-        new_v += divisor
-    return new_v
-
-
 class Block(nn.Module):
     def __init__(
         self,
@@ -47,7 +38,7 @@ class Block(nn.Module):
         norm_layer=nn.LayerNorm,
     ) -> None:
         """
-        Transformer encoder block.
+        Transformer encoder block from https://arxiv.org/pdf/1706.03762.pdf
 
         params:
             :dim: Dimensionality of each token
@@ -72,7 +63,6 @@ class Block(nn.Module):
 
 class Parallel_blocks(nn.Module):
     """Parallel ViT block (N parallel attention followed by N parallel MLP)
-    Based on:
       `Three things everyone should know about Vision Transformers` - https://arxiv.org/abs/2203.09795
 
     from
@@ -200,7 +190,8 @@ class CustomBlock(nn.Module):
 
 class RobustBlock(nn.Module):
     """
-    https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
+    Robust transformer block https://arxiv.org/pdf/2105.07926.pdf
+    - source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
     def __init__(
@@ -237,36 +228,10 @@ class RobustBlock(nn.Module):
         return X_b
 
 
-class PatchEmbed(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
-        super(PatchEmbed, self).__init__()
-
-        if stride == 2:
-            self.avgpool = nn.AvgPool2d(
-                (2, 2), stride=2, ceil_mode=True, count_include_pad=False
-            )
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
-            self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
-        elif in_channels != out_channels:
-            self.avgpool = nn.Identity()
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
-            self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
-        else:
-            self.avgpool = nn.Identity()
-            self.conv = nn.Identity()
-            self.norm = nn.Identity()
-
-    def forward(self, x):
-        return self.norm(self.conv(self.avgpool(x)))
-
-
 class ECBlock(nn.Module):
     """
-    Efficient Convolution Block
+    Efficient Convolution Block: https://arxiv.org/abs/2302.09462
+    - source :  https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
     """
 
     def __init__(
@@ -283,7 +248,7 @@ class ECBlock(nn.Module):
         self.out_channels = out_channels
         assert out_channels % num_heads == 0
 
-        self.patch_embed = PatchEmbed(in_channels, out_channels, stride)
+        self.patch_embed = MedPatchEmbed(in_channels, out_channels, stride)
         self.MHCA = MultiCHA(out_channels, num_heads, dropout=drop)
         self.attention_path_dropout = DropPath(drop)
 
@@ -303,7 +268,8 @@ class ECBlock(nn.Module):
 
 class LTBlock(nn.Module):
     """
-    Local Transformer Block
+    Local Transformer Block: https://arxiv.org/abs/2302.09462
+    - source:  https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
     """
 
     def __init__(
@@ -327,7 +293,7 @@ class LTBlock(nn.Module):
         )
         self.mhca_out_channels = out_channels - self.mhsa_out_channels
 
-        self.patch_embed = PatchEmbed(in_channels, self.mhsa_out_channels, stride)
+        self.patch_embed = MedPatchEmbed(in_channels, self.mhsa_out_channels, stride)
         self.norm1 = nn.BatchNorm2d(self.mhsa_out_channels, eps=1e-6)
 
         self.e_mhsa = EMAttention(
@@ -338,7 +304,7 @@ class LTBlock(nn.Module):
         )
         self.mhsa_path_dropout = DropPath(drop * mix_block_ratio)
 
-        self.projection = PatchEmbed(
+        self.projection = MedPatchEmbed(
             self.mhsa_out_channels, self.mhca_out_channels, stride=1
         )
 

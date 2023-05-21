@@ -15,11 +15,18 @@ from .helper import (
     SELayer,
     h_sigmoid,
     h_swish,
+    _make_divisible,
     moex,
     # helper functions
     _build_projection,
 )
-from .patch_embeddings import BasicStem, ConvEmbedding, NaivePatchEmbed, earlyConv
+from .patch_embeddings import (
+    BasicStem,
+    ConvEmbedding,
+    NaivePatchEmbed,
+    earlyConvl,
+    MedPatchEmbed,
+)
 from .positional_encodings import RelativePos, SineCosinePosEmbedding
 from .Transformers import (
     # Attention layers

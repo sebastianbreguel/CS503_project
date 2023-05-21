@@ -55,9 +55,6 @@ here is the list of datasets with the subset of variations we are going to use:
 
 Review(posible implementation):
 
-- [MedVit](https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py) - [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://github.com/Omid-Nejati/Locality-iN-Locality)
-- https://arxiv.org/pdf/2105.13677.pdf
-
 Review for implementation and future ideas:
 
 - [Learning a Fourier Transform for Linear Relative Positional Encodings in Transformers](https://paperswithcode.com/paper/learning-a-fourier-transform-for-linear)
@@ -92,13 +89,21 @@ python main.py
 
 ## References
 
-- [ViT code](https://github.com/google-research/vision_transformer)/[Paper](https://arxiv.org/pdf/2010.11929.pdf)
 - [CvT: Introducing Convolutions to Vision Transformers](https://arxiv.org/pdf/2103.15808.pdf)
-- [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
-- [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881.pdf)
-- [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
 - [Castling Vit](https://arxiv.org/pdf/2211.10526.pdf)
+- [Robust Transformer with Locality Inductive Bias and Feature Normalization](https://arxiv.org/pdf/2301.11553.pdf)
+- [Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation](https://arxiv.org/pdf/2003.07853.pdf)
 
-NLP field:
+- [TRAIN SHORT, TEST LONG: ATTENTION WITH LINEAR BIASES ENABLES INPUT LENGTH EXTRAPOLATION](https://arxiv.org/pdf/2108.12409.pdf)
+- [RoFormer: Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/pdf/2104.09864.pdf)
 
-- [Primer: Searching for Efficient Transformers for Language Modeling](https://arxiv.org/pdf/2109.08668.pdf)
+- [Towards Robust Vision Transformers](https://arxiv.org/pdf/2105.07926.pdf)
+- [ResT: An Efficient Transformer for Visual Recognition](https://arxiv.org/pdf/2105.13677.pdf)
+- [Early Convolutions Help Transformers See Better](https://arxiv.org/pdf/2106.14881v2.pdf)
+- [CeiT](https://arxiv.org/abs/2103.11816)
+- [Attention is all You need](https://arxiv.org/pdf/1706.03762.pdf)
+- [Self-Attention with Relative Position Representations](https://arxiv.org/pdf/1803.02155v2.pdf)
+- [Original Vision Transformer Model](https://arxiv.org/pdf/2010.11929.pdf)
+- [Three things everyone should know about Vision Transformers](https://arxiv.org/pdf/2203.09795.pdf)
+- [MedViT: A Robust Vision Transformer for Generalized Medical Image Classification](https://arxiv.org/abs/2302.09462)
+-
