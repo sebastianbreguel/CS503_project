@@ -1,3 +1,5 @@
+import math
+
 import torch
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -20,7 +22,7 @@ class NaivePatchEmbed(nn.Module):
             :in_channels: Number of input channels
             :embed_dim: Token dimension
         """
-        super().__init__()
+        super(NaivePatchEmbed, self).__init__()
         self.patch_size = patch_size
         self.embed_dim = embed_dim
         self.conv = nn.Conv2d(
@@ -74,7 +76,7 @@ class ConvEmbedding(nn.Module):
             :in_channels: Number of input channels
             :out_channels: Number of output channels
         """
-        super().__init__()
+        super(ConvEmbedding, self).__init__()
 
         self.out_channels = out_channels
         self.patch_size = patch_size
@@ -109,31 +111,6 @@ class ConvEmbedding(nn.Module):
         return x
 
 
-class Image2Tokens(nn.Module):
-    """
-    Convolutional Patch Embedding proposed by CeiT paper (https://arxiv.org/abs/2103.11816).
-    """
-
-    def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2) -> None:
-        super().__init__()
-        self.conv = nn.Conv2d(
-            in_chans,
-            out_chans,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=kernel_size // 2,
-            bias=False,
-        )
-        self.bn = nn.BatchNorm2d(out_chans)
-        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.maxpool(x)
-        return x
-
-
 class earlyConv(nn.Module):
     """
     Early Convolutions Help Transformers See Better https://arxiv.org/pdf/2106.14881v2.pdf
@@ -144,7 +121,7 @@ class earlyConv(nn.Module):
     """
 
     def __init__(self, channels, dim, emb_dropout=0.0) -> None:
-        super().__init__()
+        super(earlyConv, self).__init__()
         n_filter_list = (
             channels,
             48,
@@ -248,3 +225,91 @@ class BasicStem(nn.Module):
         if self.with_pos:
             x = self.pos(x)
         return x
+
+
+class PixelEmbed(nn.Module):
+    """Image to Pixel Embedding
+    - source: https://github.com/Omid-Nejati/Locality-iN-Locality/blob/main/models/tnt.py
+    """
+
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, in_dim=48, stride=4):
+        super().__init__()
+        num_patches = (img_size // patch_size) ** 2
+        self.img_size = img_size
+        self.num_patches = num_patches
+        self.in_dim = in_dim
+        new_patch_size = math.ceil(patch_size / stride)
+        self.new_patch_size = new_patch_size
+
+        self.proj = nn.Conv2d(
+            in_chans, self.in_dim, kernel_size=7, padding=3, stride=stride
+        )
+        self.unfold = nn.Unfold(kernel_size=new_patch_size, stride=new_patch_size)
+        self.pixel_pos = nn.Parameter(
+            torch.zeros(1, in_dim, new_patch_size, new_patch_size)
+        )
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+
+        x = self.proj(x)
+        x = self.unfold(x)
+        x = x.transpose(1, 2).reshape(
+            B * self.num_patches, self.in_dim, self.new_patch_size, self.new_patch_size
+        )
+        x = x + self.pixel_pos
+        x = x.reshape(B * self.num_patches, self.in_dim, -1).transpose(1, 2)
+        return x
+
+
+class PatchEmbedding(nn.Module):
+    def __init__(
+        self,
+        img_size=224,
+        patch_size=16,
+        in_chans=3,
+        num_classes=1000,
+        embed_dim=768,
+        in_dim=48,
+        drop=0.0,
+        norm_layer=nn.LayerNorm,
+        first_stride=4,
+    ):
+        super().__init__()
+        self.num_classes = num_classes
+        self.num_features = (
+            self.embed_dim
+        ) = embed_dim  # num_features for consistency with other models
+
+        self.pixel_embed = PixelEmbed(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_chans=in_chans,
+            in_dim=in_dim,
+            stride=first_stride,
+        )
+
+        num_patches = self.pixel_embed.num_patches
+        self.num_patches = num_patches
+        new_patch_size = self.pixel_embed.new_patch_size
+        num_pixel = new_patch_size**2
+
+        self.norm1_proj = norm_layer(num_pixel * in_dim)
+        self.proj = nn.Linear(num_pixel * in_dim, embed_dim)
+        self.norm2_proj = norm_layer(embed_dim)
+
+        self.patch_pos = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
+
+        self.pos_drop = nn.Dropout(drop)
+
+    def forward(self, x):
+        B, C, H, W = x.shape
+
+        pixel_embed = self.pixel_embed(x)
+
+        patch_embed = self.norm2_proj(
+            self.proj(self.norm1_proj(pixel_embed.reshape(B, self.num_patches, -1)))
+        )
+        patch_embed = patch_embed + self.patch_pos
+        patch_embed = self.pos_drop(patch_embed)
+        return pixel_embed, patch_embed

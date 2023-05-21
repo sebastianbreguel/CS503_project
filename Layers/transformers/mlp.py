@@ -19,7 +19,7 @@ class Mlp(nn.Module):
             :dropout: Dropout rate
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
-        super().__init__()
+        super(Mlp, self).__init__()
 
         self.mlp = nn.Sequential(
             nn.Linear(dim, int(mlp_ratio * dim)),
@@ -48,7 +48,7 @@ class RobustMlp(nn.Module):
             :dropout: Dropout rate
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
-        super().__init__()
+        super(RobustMlp, self).__init__()
         self.hidden_features = int(mlp_ratio * dim)
         self.fc1 = nn.Conv2d(dim, self.hidden_features, 1)
         self.bn1 = nn.BatchNorm2d(self.hidden_features)

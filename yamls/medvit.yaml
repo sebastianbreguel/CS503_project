@@ -1,0 +1,23 @@
+model:
+  name: "MedViT"
+  params:
+    depths: [2]
+    num_heads: 4
+    drop_rate: 0.1
+    num_classes: 100
+    stem_chs: [128]
+
+optimizer:
+  name: "AdamW"
+  params:
+    lr: 0.001
+    weight_decay: 0.01
+
+training:
+  num_epochs: 2
+  loss: "cross entropy"
+
+dataset:
+  name: "CIFAR100"
+  img_size: (3, 32, 32)
+  num_classes: 100

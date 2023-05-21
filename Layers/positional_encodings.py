@@ -1,9 +1,5 @@
-import math
-from itertools import repeat
-
 import torch
 import torch.nn as nn
-from einops import rearrange
 
 
 class SineCosinePosEmbedding(nn.Module):
@@ -21,7 +17,7 @@ class SineCosinePosEmbedding(nn.Module):
         temperature: float = 10000.0,
         requires_grad: bool = False,
     ) -> None:
-        super().__init__()
+        super(SineCosinePosEmbedding, self).__init__()
         self.height = height
         self.width = width
         self.embed_dim = embed_dim
@@ -57,9 +53,9 @@ class SineCosinePosEmbedding(nn.Module):
         return pos_emb
 
 
-class relativePos(nn.Module):
+class RelativePos(nn.Module):
     def __init__(self, dim, num_heads, head_dim) -> None:
-        super().__init__()
+        super(RelativePos, self).__init__()
         self.head_dim = head_dim
         self.max_length = 1028
         self.Er = torch.randn(

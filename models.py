@@ -6,13 +6,17 @@ import torch.nn as nn
 from einops import rearrange
 
 from Layers import (
+    ECB,
+    LTB,
+    BasicStem,
     ConvEmbedding,
     CustomTransformer,
     LayerNorm,
+    MedVitTransformer,
     NaivePatchEmbed,
+    RVTransformer,
     SineCosinePosEmbedding,
     Transformer,
-    RVTransformer,
 )
 
 
@@ -47,7 +51,7 @@ class ViT(nn.Module):
             :num_heads: Number of attention heads
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
-        super().__init__()
+        super(ViT, self).__init__()
 
         # Patch embedding
         if patch_embedding == "default":
@@ -134,7 +138,7 @@ class BreguiT(nn.Module):
             :num_heads: Number of attention heads
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
-        super().__init__()
+        super(BreguiT, self).__init__()
 
         img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
         self.PrelayerNorm = (
@@ -231,7 +235,7 @@ class RVT(nn.Module):
             :num_heads: Number of attention heads
             :mlp_ratio: MLP hidden dimensionality multiplier
         """
-        super().__init__()
+        super(RVT, self).__init__()
 
         img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
         self.PrelayerNorm = (
@@ -254,7 +258,6 @@ class RVT(nn.Module):
         else:
             raise NotImplementedError("Patch embedding not implemented.")
         embed_dim = self.patch_embed.get_embed_dim()
-        print(embed_dim)
 
         # Positional encoding
         if positional_encoding == None:
@@ -301,108 +304,70 @@ class RVT(nn.Module):
         return logits
 
 
-class ConvBNReLU(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, groups=1):
-        super(ConvBNReLU, self).__init__()
-        self.conv = nn.Conv2d(
-            in_channels,
-            out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=1,
-            groups=groups,
-            bias=False,
-        )
-        self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
-        self.act = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.norm(x)
-        x = self.act(x)
-        return x
-
-
-class PatchEmbed(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1):
-        super(PatchEmbed, self).__init__()
-        if stride == 2:
-            self.avgpool = nn.AvgPool2d(
-                (2, 2), stride=2, ceil_mode=True, count_include_pad=False
-            )
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
-            self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
-        elif in_channels != out_channels:
-            self.avgpool = nn.Identity()
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
-            self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
-        else:
-            self.avgpool = nn.Identity()
-            self.conv = nn.Identity()
-            self.norm = nn.Identity()
-
-    def forward(self, x):
-        return self.norm(self.conv(self.avgpool(x)))
-
-
-class MHCA(nn.Module):
-    """
-    Multi-Head Convolutional Attention
-    """
-
-    def __init__(self, out_channels, head_dim):
-        super(MHCA, self).__init__()
-        self.group_conv3x3 = nn.Conv2d(
-            out_channels,
-            out_channels,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            groups=out_channels // head_dim,
-            bias=False,
-        )
-        self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
-        self.act = nn.ReLU(inplace=True)
-        self.projection = nn.Conv2d(
-            out_channels, out_channels, kernel_size=1, bias=False
-        )
-
-    def forward(self, x):
-        out = self.group_conv3x3(x)
-        out = self.norm(out)
-        out = self.act(out)
-        out = self.projection(out)
-        return out
-
-
-class h_sigmoid(nn.Module):
-    def __init__(self, inplace=True):
-        super(h_sigmoid, self).__init__()
-        self.relu = nn.ReLU6(inplace=inplace)
-
-    def forward(self, x):
-        return self.relu(x + 3) / 6
-
-
-class h_swish(nn.Module):
-    def __init__(self, inplace=True):
-        super(h_swish, self).__init__()
-        self.sigmoid = h_sigmoid(inplace=inplace)
-
-    def forward(self, x):
-        return x * self.sigmoid(x)
-
-
 class MedViT(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.stem = nn.Sequential(
-            ConvBNReLU(3, 64, kernel_size=3, stride=2),
-            ConvBNReLU(64, 32, kernel_size=3, stride=1),
-            ConvBNReLU(32, 64, kernel_size=3, stride=1),
-            ConvBNReLU(64, 64, kernel_size=3, stride=2),
+    def __init__(
+        self,
+        stem_chs,
+        depths,
+        drop_rate,
+        num_classes=100,
+        strides=[1, 2, 2, 2],
+        sr_ratios=[8, 4, 2, 1],
+        num_heads=32,
+        mix_block_ratio=0.75,
+    ):
+        super(MedViT, self).__init__()
+
+        self.stem = BasicStem(3, out_ch=stem_chs[0])
+
+        input_channel = stem_chs[-1]
+
+        ecbs = 1
+        ltbs = 1
+
+        self.features = []
+        for stage_id in range(len(depths)):
+            for ecb_id in range(ecbs):
+                self.features.append(
+                    ECB(
+                        in_channels=input_channel,
+                        out_channels=input_channel,
+                        drop=drop_rate,
+                        mlp_ratio=4,
+                        stride=1,
+                    )
+                )
+            for ltb_id in range(ltbs):
+                self.features.append(
+                    LTB(
+                        in_channels=input_channel,
+                        out_channels=input_channel,
+                        sr_ratio=2,
+                        drop=drop_rate,
+                        mlp_ratio=4,
+                        num_heads=num_heads,
+                        stride=1,
+                    )
+                )
+
+        self.features = nn.Sequential(*self.features)
+
+        self.norm = nn.BatchNorm2d(input_channel, eps=1e-6)
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.proj_head = nn.Sequential(
+            nn.Linear(input_channel, num_classes),
         )
+
+        self.stage_out_idx = [sum(depths[: idx + 1]) - 1 for idx in range(len(depths))]
+        print("initialize_weights...")
+
+    def forward(self, x):
+        x = self.stem(x)
+        for layer in self.features:
+            x = layer(x)
+        x = self.norm(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.proj_head(x)
+        return x
