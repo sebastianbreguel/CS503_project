@@ -5,6 +5,8 @@ from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 from torch import nn
 
+import torch_geometric
+from torch_geometric.nn import GCNConv
 
 class NaivePatchEmbed(nn.Module):
     """
@@ -111,7 +113,7 @@ class ConvEmbedding(nn.Module):
         return x
 
 
-class earlyConv(nn.Module):
+class EarlyConv(nn.Module):
     """
     Early Convolutions Help Transformers See Better https://arxiv.org/pdf/2106.14881v2.pdf
     source: https://github.com/Jack-Etheredge/early_convolutions_vit_pytorch/blob/main/vitc/early_convolutions.py
@@ -121,7 +123,7 @@ class earlyConv(nn.Module):
     """
 
     def __init__(self, channels, dim, emb_dropout=0.0) -> None:
-        super(earlyConv, self).__init__()
+        super(EarlyConv, self).__init__()
         n_filter_list = (
             channels,
             48,
@@ -338,3 +340,84 @@ class PatchEmbedding(nn.Module):
         patch_embed = patch_embed + self.patch_pos
         patch_embed = self.pos_drop(patch_embed)
         return pixel_embed, patch_embed
+    
+
+    
+class GraphPatchEmbed(nn.Module):
+    '''
+    Graph Patch Embedding Module.
+
+    This module applies a Graph Convolutional Network (GCN) 
+    to the output of the Conv2d layer. This aims to capture spatial relationships between patches more effectively. 
+    Each patch is treated as a node in a graph, with edges defined based on spatial adjacency.
+
+    Args:
+        patch_size (int, optional): Patch size height and width in pixels. Default is 2.
+        in_channels (int, optional): Number of input channels. Default is 1.
+        embed_dim (int, optional): Embedding dimension for each patch. Default is 192.
+        norm_layer (callable, optional): Normalization layer to be applied after convolution. If None, no normalization is applied. Default is None.
+
+    Input Shape:
+        - Image tensor of shape (batch_size, in_channels, H, W)
+
+    Output Shape:
+        - Output tensor of shape (batch_size, N, embed_dim), where N is the number of patches.
+    '''
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
+        super().__init__()
+        self.patch_size = patch_size
+        self.embed_dim = embed_dim
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size,
+            bias=False,
+        )
+        self.norm_layer = norm_layer(embed_dim) if norm_layer else None
+        self.gcn = GCNConv(embed_dim, embed_dim)  # Define GCN layer
+
+    def forward(self, x):
+        x = self.conv(x).flatten(2).transpose(-1, -2)
+        B, N, C = x.shape
+        x = x.view(B * N, C)  # flatten batch dimension for GCN
+        edge_index = self.get_edge_index(N)  # get edge index for GCN
+        x = self.gcn(x, edge_index)  # forward through GCN
+        x = x.view(B, N, C)  # restore batch dimension
+
+        if self.norm_layer is not None:
+            x = self.norm_layer(x)
+
+        return x
+
+    def get_edge_index(nodes):
+        """
+        Creates an adjacency matrix for an image based on its patches. 
+        For now, it considers the 4 nearest neighbors (up, down, left, right)
+        TODO: Consider 8 nearest neighbors (up, down, left, right, and diagonals)
+        params:
+            :nodes: Number of patches in the image
+        returns:
+            :edge_index: A tensor containing adjacency information.
+                        It has shape (2, E), where E is the number of edges in the graph, linking the nodes/patches.
+        """
+
+        edge_index = []
+        for i in range(nodes):
+            # Get the row and column of the current patch
+            row = i // w
+            col = i % w
+
+            # For each direction (up, down, left, right), check if there is a neighboring patch
+            # If there is, add an edge in the graph
+            if row - 1 >= 0:  # up
+                edge_index.append((i, i-w))
+            if row + 1 < h:  # down
+                edge_index.append((i, i+w))
+            if col - 1 >= 0:  # left
+                edge_index.append((i, i-1))
+            if col + 1 < w:  # right
+                edge_index.append((i, i+1))
+
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()  # Convert to tensor
+        return edge_index

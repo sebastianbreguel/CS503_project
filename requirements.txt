@@ -3,5 +3,5 @@ torch-summary
 einops
 pyyaml
 tqdm
-
+torch_geometric
 

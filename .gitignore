@@ -1,6 +1,7 @@
 # ours
 paper_implementations/
 notebooks_from_class/
+ignored/
 
 .DS_Store
 medivit.py
