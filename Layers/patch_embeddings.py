@@ -8,14 +8,13 @@ from torch import nn
 import torch_geometric
 from torch_geometric.nn import GCNConv
 
+
 class NaivePatchEmbed(nn.Module):
     """
     Basic Patch Embedding Module. Same as in the transformers graded notebook.
     """
 
-    def __init__(
-        self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None
-    ) -> None:
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None) -> None:
         """
         Image to Patch Embedding.
 
@@ -104,12 +103,7 @@ class ConvEmbedding(nn.Module):
         return self.embed_dim
 
     def forward(self, x):
-        x = (
-            self.proj(x)
-            .flatten(2)
-            .transpose(-1, -2)
-            .to(memory_format=torch.contiguous_format)
-        )
+        x = self.proj(x).flatten(2).transpose(-1, -2).to(memory_format=torch.contiguous_format)
         return x
 
 
@@ -186,24 +180,16 @@ class BasicStem(nn.Module):
     def __init__(self, in_ch=3, out_ch=64, with_pos=False):
         super(BasicStem, self).__init__()
         hidden_ch = out_ch // 2
-        self.conv1 = nn.Conv2d(
-            in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False
-        )
+        self.conv1 = nn.Conv2d(in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False)
         self.norm1 = nn.BatchNorm2d(hidden_ch)
-        self.conv2 = nn.Conv2d(
-            hidden_ch, hidden_ch, kernel_size=3, stride=1, padding=1, bias=False
-        )
+        self.conv2 = nn.Conv2d(hidden_ch, hidden_ch, kernel_size=3, stride=1, padding=1, bias=False)
         self.norm2 = nn.BatchNorm2d(hidden_ch)
-        self.conv3 = nn.Conv2d(
-            hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False
-        )
+        self.conv3 = nn.Conv2d(hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
         if self.with_pos:
-            self.pa_conv = nn.Conv2d(
-                out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch
-            )
+            self.pa_conv = nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch)
             self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -231,18 +217,12 @@ class MedPatchEmbed(nn.Module):
         super(MedPatchEmbed, self).__init__()
 
         if stride == 2:
-            self.avgpool = nn.AvgPool2d(
-                (2, 2), stride=2, ceil_mode=True, count_include_pad=False
-            )
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
+            self.avgpool = nn.AvgPool2d((2, 2), stride=2, ceil_mode=True, count_include_pad=False)
+            self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, bias=False)
             self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
         elif in_channels != out_channels:
             self.avgpool = nn.Identity()
-            self.conv = nn.Conv2d(
-                in_channels, out_channels, kernel_size=1, stride=1, bias=False
-            )
+            self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, bias=False)
             self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
         else:
             self.avgpool = nn.Identity()
@@ -268,22 +248,16 @@ class PixelEmbed(nn.Module):
         new_patch_size = math.ceil(patch_size / stride)
         self.new_patch_size = new_patch_size
 
-        self.proj = nn.Conv2d(
-            in_chans, self.in_dim, kernel_size=7, padding=3, stride=stride
-        )
+        self.proj = nn.Conv2d(in_chans, self.in_dim, kernel_size=7, padding=3, stride=stride)
         self.unfold = nn.Unfold(kernel_size=new_patch_size, stride=new_patch_size)
-        self.pixel_pos = nn.Parameter(
-            torch.zeros(1, in_dim, new_patch_size, new_patch_size)
-        )
+        self.pixel_pos = nn.Parameter(torch.zeros(1, in_dim, new_patch_size, new_patch_size))
 
     def forward(self, x):
         B, C, H, W = x.shape
 
         x = self.proj(x)
         x = self.unfold(x)
-        x = x.transpose(1, 2).reshape(
-            B * self.num_patches, self.in_dim, self.new_patch_size, self.new_patch_size
-        )
+        x = x.transpose(1, 2).reshape(B * self.num_patches, self.in_dim, self.new_patch_size, self.new_patch_size)
         x = x + self.pixel_pos
         x = x.reshape(B * self.num_patches, self.in_dim, -1).transpose(1, 2)
         return x
@@ -304,9 +278,7 @@ class PatchEmbedding(nn.Module):
     ):
         super().__init__()
         self.num_classes = num_classes
-        self.num_features = (
-            self.embed_dim
-        ) = embed_dim  # num_features for consistency with other models
+        self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
 
         self.pixel_embed = PixelEmbed(
             img_size=img_size,
@@ -334,21 +306,18 @@ class PatchEmbedding(nn.Module):
 
         pixel_embed = self.pixel_embed(x)
 
-        patch_embed = self.norm2_proj(
-            self.proj(self.norm1_proj(pixel_embed.reshape(B, self.num_patches, -1)))
-        )
+        patch_embed = self.norm2_proj(self.proj(self.norm1_proj(pixel_embed.reshape(B, self.num_patches, -1))))
         patch_embed = patch_embed + self.patch_pos
         patch_embed = self.pos_drop(patch_embed)
         return pixel_embed, patch_embed
-    
 
-    
+
 class GraphPatchEmbed(nn.Module):
-    '''
+    """
     Graph Patch Embedding Module.
 
-    This module applies a Graph Convolutional Network (GCN) 
-    to the output of the Conv2d layer. This aims to capture spatial relationships between patches more effectively. 
+    This module applies a Graph Convolutional Network (GCN)
+    to the output of the Conv2d layer. This aims to capture spatial relationships between patches more effectively.
     Each patch is treated as a node in a graph, with edges defined based on spatial adjacency.
 
     Args:
@@ -362,7 +331,8 @@ class GraphPatchEmbed(nn.Module):
 
     Output Shape:
         - Output tensor of shape (batch_size, N, embed_dim), where N is the number of patches.
-    '''
+    """
+
     def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
         super().__init__()
         self.patch_size = patch_size
@@ -377,10 +347,16 @@ class GraphPatchEmbed(nn.Module):
         self.norm_layer = norm_layer(embed_dim) if norm_layer else None
         self.gcn = GCNConv(embed_dim, embed_dim)  # Define GCN layer
 
+    def get_patch_size(self):
+        return self.patch_size
+
+    def get_embed_dim(self):
+        return self.embed_dim
+
     def forward(self, x):
         x = self.conv(x).flatten(2).transpose(-1, -2)
         B, N, C = x.shape
-        x = x.view(B * N, C)  # flatten batch dimension for GCN
+
         edge_index = self.get_edge_index(N)  # get edge index for GCN
         x = self.gcn(x, edge_index)  # forward through GCN
         x = x.view(B, N, C)  # restore batch dimension
@@ -390,9 +366,9 @@ class GraphPatchEmbed(nn.Module):
 
         return x
 
-    def get_edge_index(nodes):
+    def get_edge_index(self, nodes):
         """
-        Creates an adjacency matrix for an image based on its patches. 
+        Creates an adjacency matrix for an image based on its patches.
         For now, it considers the 4 nearest neighbors (up, down, left, right)
         TODO: Consider 8 nearest neighbors (up, down, left, right, and diagonals)
         params:
@@ -411,13 +387,13 @@ class GraphPatchEmbed(nn.Module):
             # For each direction (up, down, left, right), check if there is a neighboring patch
             # If there is, add an edge in the graph
             if row - 1 >= 0:  # up
-                edge_index.append((i, i-w))
+                edge_index.append((i, i - w))
             if row + 1 < h:  # down
-                edge_index.append((i, i+w))
+                edge_index.append((i, i + w))
             if col - 1 >= 0:  # left
-                edge_index.append((i, i-1))
+                edge_index.append((i, i - 1))
             if col + 1 < w:  # right
-                edge_index.append((i, i+1))
+                edge_index.append((i, i + 1))
 
         edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()  # Convert to tensor
         return edge_index

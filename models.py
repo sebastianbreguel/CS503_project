@@ -11,6 +11,7 @@ from Layers import (
     BasicStem,
     ConvEmbedding,
     CustomTransformer,
+    GraphPatchEmbed,
     LayerNorm,
     MedVitTransformer,
     NaivePatchEmbed,
@@ -25,19 +26,7 @@ class ViT(nn.Module):
     Original Vision Transformer Model   (https://arxiv.org/pdf/2010.11929.pdf).
     """
 
-    def __init__(
-        self,
-        depth=4,
-        num_heads=4,
-        mlp_ratio=4.0,
-        drop_rate=0.0,
-        patch_embedding="default",
-        positional_encoding=None,
-        img_size=(28, 28),
-        num_classes=10,
-        head_bias=False,
-        **kwargs
-    ):
+    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
         """
         A Vision Transformer for classification.
 
@@ -59,6 +48,8 @@ class ViT(nn.Module):
             self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
         elif patch_embedding["type"] == "NaivePatchEmbedding":
             self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
+        elif patch_embedding["type"] == "GraphPatchEmbedding":
+            self.patch_embed = GraphPatchEmbed(**patch_embedding["params"])
         else:
             raise NotImplementedError("Patch embedding not implemented.")
         embed_dim = self.patch_embed.get_embed_dim()
@@ -88,9 +79,7 @@ class ViT(nn.Module):
             drop_rate=drop_rate,
         )
 
-        self.head = nn.Sequential(
-            nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias)
-        )
+        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
 
     def forward(self, x):
         proj = self.patch_embed(x)
@@ -112,18 +101,7 @@ class BreguiT(nn.Module):
     """
 
     def __init__(
-        self,
-        depth=4,
-        num_heads=4,
-        mlp_ratio=4.0,
-        drop_rate=0.0,
-        patch_embedding="default",
-        positional_encoding=None,
-        img_size=(28, 28),
-        num_classes=10,
-        head_bias=False,
-        preLayerNorm=False,
-        **kwargs
+        self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, preLayerNorm=False, **kwargs
     ):
         """
         A Vision Transformer for classification.
@@ -141,13 +119,7 @@ class BreguiT(nn.Module):
         super(BreguiT, self).__init__()
 
         img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-        self.PrelayerNorm = (
-            LayerNorm(
-                [patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]
-            )
-            if preLayerNorm
-            else nn.Identity()
-        )
+        self.PrelayerNorm = LayerNorm([patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]) if preLayerNorm else nn.Identity()
 
         # Patch embedding
         if patch_embedding == "default":
@@ -183,9 +155,7 @@ class BreguiT(nn.Module):
             mlp_ratio=mlp_ratio,
             drop_rate=drop_rate,
         )
-        self.head = nn.Sequential(
-            nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias)
-        )
+        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
 
     def forward(self, x):
         # x = self.PrelayerNorm(x)
@@ -210,18 +180,7 @@ class RVT(nn.Module):
     """
 
     def __init__(
-        self,
-        depth=4,
-        num_heads=4,
-        mlp_ratio=4.0,
-        drop_rate=0.0,
-        patch_embedding="default",
-        positional_encoding=None,
-        img_size=(28, 28),
-        num_classes=10,
-        head_bias=False,
-        preLayerNorm=False,
-        **kwargs
+        self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, preLayerNorm=False, **kwargs
     ):
         """
         A Vision Transformer for classification.
@@ -239,13 +198,7 @@ class RVT(nn.Module):
         super(RVT, self).__init__()
 
         img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-        self.PrelayerNorm = (
-            LayerNorm(
-                [patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]
-            )
-            if preLayerNorm
-            else nn.Identity()
-        )
+        self.PrelayerNorm = LayerNorm([patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]) if preLayerNorm else nn.Identity()
 
         # Patch embedding
         if patch_embedding == "default":
@@ -281,9 +234,7 @@ class RVT(nn.Module):
             mlp_ratio=mlp_ratio,
             drop_rate=drop_rate,
         )
-        self.head = nn.Sequential(
-            nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias)
-        )
+        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
 
         self.pooling = nn.AvgPool2d(1)
         self.norm = nn.LayerNorm(embed_dim)
