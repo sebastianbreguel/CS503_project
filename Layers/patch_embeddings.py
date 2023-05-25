@@ -361,6 +361,8 @@ class GraphPatchEmbed(nn.Module):
         x = self.conv(x).flatten(2).transpose(-1, -2)
         B, N, C = x.shape
 
+        x = x.contiguous().view(B * N, C)  # flatten batch and patch dimensions
+
         edge_index = self.get_edge_index(N)  # get edge index for GCN
         x = self.gcn(x, edge_index)  # forward through GCN
         x = x.view(B, N, C)  # restore batch dimension
