@@ -333,7 +333,7 @@ class GraphPatchEmbed(nn.Module):
         - Output tensor of shape (batch_size, N, embed_dim), where N is the number of patches.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None, **kwargs):
         super().__init__()
         self.patch_size = patch_size
         self.embed_dim = embed_dim
@@ -346,6 +346,10 @@ class GraphPatchEmbed(nn.Module):
         )
         self.norm_layer = norm_layer(embed_dim) if norm_layer else None
         self.gcn = GCNConv(embed_dim, embed_dim)  # Define GCN layer
+        if kwargs.width is not None:
+            self.width = kwargs.width
+        if kwargs.height is not None:
+            self.height = kwargs.height
 
     def get_patch_size(self):
         return self.patch_size
@@ -377,6 +381,9 @@ class GraphPatchEmbed(nn.Module):
             :edge_index: A tensor containing adjacency information.
                         It has shape (2, E), where E is the number of edges in the graph, linking the nodes/patches.
         """
+
+        w = self.width
+        h = self.height
 
         edge_index = []
         for i in range(nodes):
