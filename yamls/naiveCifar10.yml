@@ -2,22 +2,23 @@ model:
   name: "ViT"
   params:
     depth: 1
-    num_heads: 8
+    num_heads: 3
     mlp_ratio: 4.0
     drop_rate: 0.1
     num_classes: 10
     head_bias: False
     patch_embedding:
-      type: "NaivePatchEmbedding"
+      type: "ConvEmbedding"
       params:
         embed_dim: 192
         in_channels: 3
         patch_size: 2
+        out_channels: 192
     positional_encoding:
       type: "Fixed2DPositionalEmbedding"
       params:
         additive: True
-        img_size: (32, 32)
+        img_size: (224, 224)
 
 optimizer:
   name: "AdamW"
@@ -31,5 +32,5 @@ training:
 
 dataset:
   name: "CIFAR10"
-  img_size: (3, 32, 32)
+  img_size: (3, 224, 224)
   num_classes: 10

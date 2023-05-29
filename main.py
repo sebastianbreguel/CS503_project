@@ -26,26 +26,24 @@ def main(config):
     print(device)
 
     # loss
-    loss = get_loss(config["training"]["loss"])
+    # loss = get_loss(config["training"]["loss"])
 
     # model
     model = get_model(config)
 
     # Optimizer
-    optimizer = get_optimizer(config, model.parameters())
+    # optimizer = get_optimizer(config, model.parameters())
 
     input_size = ast.literal_eval(config["dataset"]["img_size"])
     summary(model, input_size)
     model = model.to(device)
 
-    # TODO: put this logic in an Algorithm class
-    num_epochs = config["training"]["num_epochs"]
-    loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
-    model, _, _ = train_model(
-        model, optimizer, loader_train, loader_val, num_epochs, loss, device
-    )
+    # # TODO: put this logic in an Algorithm class
+    # num_epochs = config["training"]["num_epochs"]
+    # loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
+    # model, _, _ = train_model(model, optimizer, loader_train, loader_val, num_epochs, loss, device)
 
-    test_model(model, loader_test, loss, device)
+    # test_model(model, loader_test, loss, device)
 
 
 if __name__ == "__main__":

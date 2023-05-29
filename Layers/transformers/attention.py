@@ -126,9 +126,9 @@ class ConvAttention(nn.Module):
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
 
-        self.conv_proj_q = _build_projection(dim, dim, 3, 2, 2, "dw_bn")
-        self.conv_proj_k = _build_projection(dim, dim, 3, 2, 2, "dw_bn")
-        self.conv_proj_v = _build_projection(dim, dim, 3, 2, 2, "dw_bn")
+        self.conv_proj_q = _build_projection(dim, dim, 3, 1, 1, "dw_bn")
+        self.conv_proj_k = _build_projection(dim, dim, 3, 1, 1, "dw_bn")
+        self.conv_proj_v = _build_projection(dim, dim, 3, 1, 1, "dw_bn")
 
         self.Q = nn.Linear(dim, dim, bias)
         self.K = nn.Linear(dim, dim, bias)
@@ -157,7 +157,6 @@ class ConvAttention(nn.Module):
             v = self.conv_proj_v(x)
         else:
             v = rearrange(x, "b c h w -> b (h w) c")
-
         return q, k, v
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
@@ -171,11 +170,7 @@ class ConvAttention(nn.Module):
             Output of shape [B N C].
         """
         B, N, C = x.shape
-        if (
-            self.conv_proj_q is not None
-            or self.conv_proj_k is not None
-            or self.conv_proj_v is not None
-        ):
+        if self.conv_proj_q is not None or self.conv_proj_k is not None or self.conv_proj_v is not None:
             q, k, v = self.forward_conv(x)
             q, k, v = self.Q(q), self.K(k), self.V(v)
         else:
@@ -234,11 +229,7 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
         x = self.conv(x)
         # Crop the right most `kernel_size - 1` results since we padded both sides
         x = x[:, :, : -(self.kernel_size - 1)]
-        x = (
-            x.view(B, self.heads, self.head_dim, N)
-            .permute(3, 0, 1, 2)
-            .to(memory_format=torch.contiguous_format)
-        )
+        x = x.view(B, self.heads, self.head_dim, N).permute(3, 0, 1, 2).to(memory_format=torch.contiguous_format)
 
         return x
 
@@ -282,15 +273,9 @@ class MultiDPHConvHeadAttention(nn.Module):
             Output of shape [B N C].
         """
         B, N, C = x.shape
-        q = self.Q(
-            self.Q_linear(x).view(B, self.num_heads * self.head_dim, N)
-        ).transpose(1, 2)
-        k = self.K(
-            self.K_linear(x).view(B, self.num_heads * self.head_dim, N)
-        ).transpose(1, 2)
-        v = self.V(
-            self.V_linear(x).view(B, self.num_heads * self.head_dim, N)
-        ).transpose(1, 2)
+        q = self.Q(self.Q_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
+        k = self.K(self.K_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
+        v = self.V(self.V_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
 
         scores = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
@@ -351,9 +336,7 @@ class LinAngularAttention(nn.Module):
         if self.sparse_reg:
             attn = torch.matmul(q * self.scale, k.transpose(-2, -1))
             attn = attn.softmax(dim=-1)
-            mask = (
-                attn > 0.02
-            )  # note that the threshold could be different; adapt to your codebases.
+            mask = attn > 0.02  # note that the threshold could be different; adapt to your codebases.
             sparse = mask * attn
 
         q = q / q.norm(dim=-1, keepdim=True)
@@ -363,11 +346,7 @@ class LinAngularAttention(nn.Module):
         attn = torch.matmul(k.transpose(-2, -1), v)
 
         if self.sparse_reg:
-            x = (
-                torch.matmul(sparse, v)
-                + 0.5 * v
-                + 1.0 / math.pi * torch.matmul(q, attn)
-            )
+            x = torch.matmul(sparse, v) + 0.5 * v + 1.0 / math.pi * torch.matmul(q, attn)
         else:
             x = 0.5 * v + 1.0 / math.pi * torch.matmul(q, attn)
         x = x / x.norm(dim=-1, keepdim=True)
@@ -387,7 +366,7 @@ class EMAttention(nn.Module):
     def __init__(
         self,
         dim,
-        num_heads=8,
+        num_heads=32,
         bias=False,
         drop=0.0,
         sr_ratio=1,
@@ -444,19 +423,11 @@ class MultiCHA(nn.Module):
 
     def __init__(self, out_channels, num_heads, dropout=0.0):
         super(MultiCHA, self).__init__()
-        self.group_conv3x3 = nn.Conv2d(
-            out_channels,
-            out_channels,
-            kernel_size=3,
-            stride=1,
-            padding=1,
-            bias=False,
-        )
+
+        self.group_conv3x3 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False, groups=out_channels // num_heads)
         self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
         self.act = nn.ReLU(inplace=True)
-        self.projection = nn.Conv2d(
-            out_channels, out_channels, kernel_size=1, bias=False
-        )
+        self.projection = nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -631,11 +602,7 @@ class ALiBiAttention(nn.Module):
 
     def get_alibi_slope(self, num_heads):
         x = (2**8) ** (1 / num_heads)
-        return (
-            torch.tensor([1 / x ** (i + 1) for i in range(num_heads)])
-            .unsqueeze(-1)
-            .unsqueeze(-1)
-        )
+        return torch.tensor([1 / x ** (i + 1) for i in range(num_heads)]).unsqueeze(-1).unsqueeze(-1)
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         B, N, C = x.shape
@@ -762,9 +729,7 @@ class RoformerAttention(nn.Module):
     def sinusoidal_position_embeddings(self, inputs):
         output_dim = self.dim // self.num_heads
         seq_len = inputs.size(1)
-        position_ids = torch.arange(
-            0, seq_len, dtype=torch.float32, device=inputs.device
-        )
+        position_ids = torch.arange(0, seq_len, dtype=torch.float32, device=inputs.device)
 
         indices = torch.arange(0, output_dim // 2, dtype=torch.float32)
         indices = torch.pow(10000.0, -2 * indices / output_dim).to(inputs.device)
@@ -834,9 +799,7 @@ class RobustAttention(nn.Module):
         self.Q = nn.Linear(dim, dim, bias)
         self.K = nn.Linear(dim, dim, bias)
         self.V = nn.Linear(dim, dim, bias)
-        self.W = nn.Parameter(
-            torch.randn(256, 256), requires_grad=True  # TODO see how to obtain the N
-        )  # learnable paramter to learn the position encoding
+        self.W = nn.Parameter(torch.randn(196, 196), requires_grad=True)  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)

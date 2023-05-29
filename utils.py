@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from models import RVT, BreguiT, MedViT, ViT
+from models import RVT, BreguiT, MedViT, ViT, Model1, Model2
 
 MODELS = ["ViT", "BreguiT", "RVT", "MedViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -21,10 +21,14 @@ def get_model(config) -> torch.nn.Module:
     elif config["model"]["name"] == "MedViT":
         model = MedViT(**config["model"]["params"])
 
+    elif config["model"]["name"] == "Model1":
+        model = Model1(**config["model"]["params"])
+
+    elif config["model"]["name"] == "Model2":
+        model = Model2(**config["model"]["params"])
+
     else:
-        return NotImplementedError(
-            "Model not implemented. Please choose from: " + str(MODELS)
-        )
+        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -45,9 +49,7 @@ def get_optimizer(config, parameters) -> torch.optim.Optimizer:
         optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
 
     else:
-        return NotImplementedError(
-            "Optimizer not implemented. Please choose from: " + str(OPTIMIZERS)
-        )
+        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
 
     return optimizer
 
@@ -71,9 +73,7 @@ def get_loss(name):
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
-        raise NotImplementedError(
-            "Loss not implemented. Please choose from: " + str(LOSSES)
-        )
+        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
 
     return loss
 
@@ -121,9 +121,7 @@ def train_model(
         epoch_loss_val /= len(loader_val)
         val_losses.append(epoch_loss_val)
 
-        print(
-            f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}"
-        )
+        print(f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}")
 
     return model, train_losses, val_losses
 

@@ -47,9 +47,7 @@ class Block(nn.Module):
         super(Block, self).__init__()
 
         self.attention = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = Mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = norm_layer(dim)
         self.LN_2 = norm_layer(dim)
         self.drop = nn.Dropout(drop)
@@ -161,7 +159,7 @@ class CustomBlock(nn.Module):
         drop=0.0,
         mlp_ratio=4.0,
         activation=nn.GELU,
-        attention=LinAngularAttention,
+        attention=ConvAttention,
         mlp=Mlp,
     ) -> None:
         """
@@ -174,9 +172,7 @@ class CustomBlock(nn.Module):
         super(CustomBlock, self).__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
@@ -214,9 +210,7 @@ class RobustBlock(nn.Module):
         super(RobustBlock, self).__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
@@ -240,6 +234,7 @@ class ECBlock(nn.Module):
         out_channels,
         stride=1,
         drop=0,
+        path_dropout=0,
         num_heads=32,
         mlp_ratio=3,
     ):
@@ -250,18 +245,17 @@ class ECBlock(nn.Module):
 
         self.patch_embed = MedPatchEmbed(in_channels, out_channels, stride)
         self.MHCA = MultiCHA(out_channels, num_heads, dropout=drop)
-        self.attention_path_dropout = DropPath(drop)
+        self.attention_path_dropout = DropPath(path_dropout)
 
-        self.conv = LocalityFeedForward(
-            out_channels, 1, mlp_ratio, reduction=out_channels
-        )
+        self.conv = LocalityFeedForward(out_channels, 1, mlp_ratio, reduction=out_channels)
 
         self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
 
     def forward(self, x):
         x = self.patch_embed(x)
+
         x = x + self.attention_path_dropout(self.MHCA(x))
-        out = x
+        out = self.norm(x)
         x = x + self.conv(out)  # (B, dim, 14, 14)
         return x
 
@@ -277,6 +271,7 @@ class LTBlock(nn.Module):
         in_channels,
         out_channels,
         drop=0,
+        path_dropout=0,
         stride=1,
         sr_ratio=1,
         mlp_ratio=2,
@@ -288,33 +283,26 @@ class LTBlock(nn.Module):
         self.out_channels = out_channels
         self.mix_block_ratio = mix_block_ratio
 
-        self.mhsa_out_channels = _make_divisible(
-            int(out_channels * mix_block_ratio), 32
-        )
+        self.mhsa_out_channels = _make_divisible(int(out_channels * mix_block_ratio), 32)
         self.mhca_out_channels = out_channels - self.mhsa_out_channels
 
         self.patch_embed = MedPatchEmbed(in_channels, self.mhsa_out_channels, stride)
         self.norm1 = nn.BatchNorm2d(self.mhsa_out_channels, eps=1e-6)
-
         self.e_mhsa = EMAttention(
             self.mhsa_out_channels,
             num_heads=num_heads,
             drop=drop,
             sr_ratio=sr_ratio,
         )
-        self.mhsa_path_dropout = DropPath(drop * mix_block_ratio)
+        self.mhsa_path_dropout = DropPath(path_dropout * mix_block_ratio)
 
-        self.projection = MedPatchEmbed(
-            self.mhsa_out_channels, self.mhca_out_channels, stride=1
-        )
+        self.projection = MedPatchEmbed(self.mhsa_out_channels, self.mhca_out_channels, stride=1)
 
         self.mhca = MultiCHA(self.mhca_out_channels, num_heads=num_heads)
-        self.mhca_path_dropout = DropPath(drop * (1 - mix_block_ratio))
+        self.mhca_path_dropout = DropPath(path_dropout * (1 - mix_block_ratio))
 
         self.norm2 = nn.BatchNorm2d(out_channels, eps=1e-6)
-        self.conv = LocalityFeedForward(
-            out_channels, 1, mlp_ratio, reduction=out_channels
-        )
+        self.conv = LocalityFeedForward(out_channels, 1, mlp_ratio, reduction=out_channels)
 
         self.is_bn_merged = False
 
@@ -334,8 +322,10 @@ class LTBlock(nn.Module):
 
         # conv 1x1
         out = self.projection(x)
+
         # MCHA
         out = out + self.mhca_path_dropout(self.mhca(out))
+
         x = torch.cat([x, out], dim=1)
 
         if not torch.onnx.is_in_onnx_export() and not self.is_bn_merged:
@@ -345,4 +335,50 @@ class LTBlock(nn.Module):
 
         # LFFN
         x = x + self.conv(out)
+        return x
+
+
+class Model1ParallelBlock(nn.Module):
+    """Parallel ViT block (N parallel attention followed by N parallel MLP)
+    `Three things everyone should know about Vision Transformers` - https://arxiv.org/abs/2203.09795
+
+    """
+
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        drop=0.0,
+        mlp_ratio=4.0,
+        activation=nn.GELU,
+    ) -> None:
+        """
+        Transformer encoder block.
+
+        params:
+            :dim: Dimensionality of each token
+            :num_heads: Number of attention heads
+            :mlp_ratio: MLP hidden dimensionality multiplier
+            :num_parallel: Number of parallel blocks
+        """
+        super(Model1ParallelBlock, self).__init__()
+        init_values = 1e-4
+
+        self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads)
+        self.attns2 = LinAngularAttention(dim, dropout=drop, num_heads=num_heads)
+        self.gamma_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
+        self.gamma_2 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
+        self.norm1 = nn.LayerNorm(dim)
+
+        self.mlp1 = Mlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
+        self.mlp2 = Mlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
+        self.gamma_1_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
+        self.gamma_2_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
+        self.norm2 = nn.LayerNorm(dim)
+
+        self.drop_path = DropPath(drop) if drop > 0.0 else nn.Identity()
+
+    def forward(self, x, mask=None):
+        x = x + self.drop_path(self.gamma_1 * self.attns1(self.norm1(x))) + self.drop_path(self.gamma_2 * self.attns2(self.norm1(x)))
+        x = x + self.drop_path(self.gamma_1 * self.mlp1(self.norm2(x))) + self.drop_path(self.gamma_2 * self.mlp2(self.norm2(x)))
         return x

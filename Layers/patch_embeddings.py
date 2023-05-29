@@ -155,18 +155,16 @@ class EarlyConv(nn.Module):
             "flatten image",
             Rearrange("batch channels height width -> batch (height width) channels"),
         )
-        self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1] + 1, dim))
-        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
+        self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1], dim))
         self.dropout = nn.Dropout(emb_dropout)
 
     def forward(self, x):
         x = self.conv_layers(x)
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
-        x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, : (n + 1)]
+        x += self.pos_embedding[:, :(n)]
         x = self.dropout(x)
+        return x
 
 
 class BasicStem(nn.Module):
@@ -177,14 +175,20 @@ class BasicStem(nn.Module):
     basic patch membedding over 3 convs
     """
 
-    def __init__(self, in_ch=3, out_ch=64, with_pos=False):
+    def __init__(self, in_ch=3, stem_chs=[64, 32, 64], out_ch=64, with_pos=False):
         super(BasicStem, self).__init__()
         hidden_ch = out_ch // 2
-        self.conv1 = nn.Conv2d(in_ch, hidden_ch, kernel_size=3, stride=2, padding=1, bias=False)
-        self.norm1 = nn.BatchNorm2d(hidden_ch)
-        self.conv2 = nn.Conv2d(hidden_ch, hidden_ch, kernel_size=3, stride=1, padding=1, bias=False)
-        self.norm2 = nn.BatchNorm2d(hidden_ch)
-        self.conv3 = nn.Conv2d(hidden_ch, out_ch, kernel_size=3, stride=2, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(in_ch, stem_chs[0], kernel_size=3, stride=2, padding=1, bias=False)
+        self.norm1 = nn.BatchNorm2d(stem_chs[0])
+
+        self.conv2 = nn.Conv2d(stem_chs[0], stem_chs[1], kernel_size=3, stride=1, padding=1, bias=False)
+        self.norm2 = nn.BatchNorm2d(stem_chs[1])
+
+        self.conv3 = nn.Conv2d(stem_chs[1], stem_chs[2], kernel_size=3, stride=1, padding=1, bias=False)
+        self.norm3 = nn.BatchNorm2d(stem_chs[2])
+
+        self.conv4 = nn.Conv2d(stem_chs[2], stem_chs[2], kernel_size=3, stride=2, padding=1, bias=False)
+        self.norm4 = nn.BatchNorm2d(stem_chs[2])
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
@@ -202,6 +206,13 @@ class BasicStem(nn.Module):
         x = self.act(x)
 
         x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.act(x)
+
+        x = self.conv4(x)
+        x = self.norm4(x)
+        x = self.act(x)
+
         if self.with_pos:
             x = x * self.sigmoid(self.pa_conv(x))
         return x
@@ -215,6 +226,7 @@ class MedPatchEmbed(nn.Module):
 
     def __init__(self, in_channels, out_channels, stride=1):
         super(MedPatchEmbed, self).__init__()
+        self.out_channels = out_channels
 
         if stride == 2:
             self.avgpool = nn.AvgPool2d((2, 2), stride=2, ceil_mode=True, count_include_pad=False)
@@ -230,86 +242,13 @@ class MedPatchEmbed(nn.Module):
             self.norm = nn.Identity()
 
     def forward(self, x):
-        return self.norm(self.conv(self.avgpool(x)))
-
-
-# TODO Check if we will use this -> finish implementation
-class PixelEmbed(nn.Module):
-    """Image to Pixel Embedding
-    - source: https://github.com/Omid-Nejati/Locality-iN-Locality/blob/main/models/tnt.py
-    """
-
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, in_dim=48, stride=4):
-        super().__init__()
-        num_patches = (img_size // patch_size) ** 2
-        self.img_size = img_size
-        self.num_patches = num_patches
-        self.in_dim = in_dim
-        new_patch_size = math.ceil(patch_size / stride)
-        self.new_patch_size = new_patch_size
-
-        self.proj = nn.Conv2d(in_chans, self.in_dim, kernel_size=7, padding=3, stride=stride)
-        self.unfold = nn.Unfold(kernel_size=new_patch_size, stride=new_patch_size)
-        self.pixel_pos = nn.Parameter(torch.zeros(1, in_dim, new_patch_size, new_patch_size))
-
-    def forward(self, x):
-        B, C, H, W = x.shape
-
-        x = self.proj(x)
-        x = self.unfold(x)
-        x = x.transpose(1, 2).reshape(B * self.num_patches, self.in_dim, self.new_patch_size, self.new_patch_size)
-        x = x + self.pixel_pos
-        x = x.reshape(B * self.num_patches, self.in_dim, -1).transpose(1, 2)
+        try:
+            B, N, C = x.shape
+            x = x.transpose(-3, -1).contiguous().view(B, C, int(N**0.5), int(N**0.5))
+        except:
+            pass
+        x = self.norm(self.conv(self.avgpool(x)))
         return x
-
-
-class PatchEmbedding(nn.Module):
-    def __init__(
-        self,
-        img_size=224,
-        patch_size=16,
-        in_chans=3,
-        num_classes=1000,
-        embed_dim=768,
-        in_dim=48,
-        drop=0.0,
-        norm_layer=nn.LayerNorm,
-        first_stride=4,
-    ):
-        super().__init__()
-        self.num_classes = num_classes
-        self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
-
-        self.pixel_embed = PixelEmbed(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=in_chans,
-            in_dim=in_dim,
-            stride=first_stride,
-        )
-
-        num_patches = self.pixel_embed.num_patches
-        self.num_patches = num_patches
-        new_patch_size = self.pixel_embed.new_patch_size
-        num_pixel = new_patch_size**2
-
-        self.norm1_proj = norm_layer(num_pixel * in_dim)
-        self.proj = nn.Linear(num_pixel * in_dim, embed_dim)
-        self.norm2_proj = norm_layer(embed_dim)
-
-        self.patch_pos = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
-
-        self.pos_drop = nn.Dropout(drop)
-
-    def forward(self, x):
-        B, C, H, W = x.shape
-
-        pixel_embed = self.pixel_embed(x)
-
-        patch_embed = self.norm2_proj(self.proj(self.norm1_proj(pixel_embed.reshape(B, self.num_patches, -1))))
-        patch_embed = patch_embed + self.patch_pos
-        patch_embed = self.pos_drop(patch_embed)
-        return pixel_embed, patch_embed
 
 
 class GraphPatchEmbed(nn.Module):

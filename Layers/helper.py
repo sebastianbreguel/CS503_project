@@ -102,9 +102,7 @@ class QuickGELU(nn.Module):
 ###############################################################
 
 
-def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
+def drop_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
 
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
@@ -118,9 +116,7 @@ def drop_path(
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
-    shape = (x.shape[0],) + (1,) * (
-        x.ndim - 1
-    )  # work with diff dim tensors, not just 2D ConvNets
+    shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
     random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
     if keep_prob > 0.0 and scale_by_keep:
         random_tensor.div_(keep_prob)
@@ -187,9 +183,7 @@ class PatchDropout(torch.nn.Module):
         if self.sampling == "uniform":
             return self.uniform_mask(x)
         else:
-            return NotImplementedError(
-                f"PatchDropout does ot support {self.sampling} sampling"
-            )
+            return NotImplementedError(f"PatchDropout does ot support {self.sampling} sampling")
 
     def uniform_mask(self, x):
         """
@@ -207,7 +201,7 @@ class PatchDropout(torch.nn.Module):
         return patch_mask
 
 
-def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, method):
+def _build_projection(dim_in, dim_out, kernel_size, padding, stride, method):
     if method == "dw_bn":
         proj = nn.Sequential(
             OrderedDict(
@@ -216,7 +210,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
                         "conv",
                         nn.Conv2d(
                             dim_in,
-                            dim_in,
+                            dim_out,
                             kernel_size=kernel_size,
                             padding=padding,
                             stride=stride,
@@ -224,7 +218,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
                             groups=dim_in,
                         ),
                     ),
-                    ("bn", nn.BatchNorm2d(dim_in)),
+                    ("bn", nn.BatchNorm2d(dim_out)),
                     ("rearrage", Rearrange("b c h w -> b (h w) c")),
                 ]
             )
@@ -260,6 +254,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor
+
     new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
     # Make sure that round down does not go down by more than 10%.
     if new_v < 0.9 * v:

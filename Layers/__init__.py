@@ -51,6 +51,7 @@ from .Transformers import (
     LTBlock,
     Parallel_blocks,
     RobustBlock,
+    Model1ParallelBlock,
     # MLP layers
     Mlp,
     RobustMlp,

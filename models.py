@@ -1,21 +1,22 @@
 import ast
-import math
 
 import torch
 import torch.nn as nn
-from einops import rearrange
 
 from Layers import (
     ECBlock,
     LTBlock,
+    EarlyConv,
     BasicStem,
     ConvEmbedding,
     CustomTransformer,
     GraphPatchEmbed,
     LayerNorm,
     MedVitTransformer,
+    MedPatchEmbed,
     NaivePatchEmbed,
     RVTransformer,
+    ParallelTransformers,
     SineCosinePosEmbedding,
     Transformer,
 )
@@ -158,8 +159,6 @@ class BreguiT(nn.Module):
         self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
 
     def forward(self, x):
-        # x = self.PrelayerNorm(x)
-
         proj = self.patch_embed(x)
 
         if self.positional_encoding is not None:
@@ -275,37 +274,55 @@ class MedViT(nn.Module):
     ):
         super(MedViT, self).__init__()
 
-        self.stem = BasicStem(3, out_ch=stem_chs[0])
+        self.stem = BasicStem(3)
 
-        input_channel = stem_chs[-1]
+        self.stage_out_channels = [[96] * (depths[0]), [192] * (depths[1] - 1) + [256], [384, 384, 384, 384, 512] * (depths[2] // 5), [768] * (depths[3] - 1) + [1024]]
 
-        ecbs = 1
-        ltbs = 1
+        # Next Hybrid Strategy
+        self.stage_block_types = [
+            [ECBlock] * depths[0],
+            [ECBlock] * (depths[1] - 1) + [LTBlock],
+            [ECBlock, ECBlock, ECBlock, ECBlock, LTBlock] * (depths[2] // 5),
+            [ECBlock] * (depths[3] - 1) + [LTBlock],
+        ]
 
-        self.features = []
+        input_channel = 64
+        features = []
+        idx = 0
+        dpr = [x.item() for x in torch.linspace(0, 0.1, sum(depths))]  # stochastic depth decay rule
         for stage_id in range(len(depths)):
-            for ecb_id in range(ecbs):
-                self.features.append(
-                    ECBlock(
+            numrepeat = depths[stage_id]
+            output_channels = self.stage_out_channels[stage_id]
+            block_types = self.stage_block_types[stage_id]
+            for block_id in range(numrepeat):
+                if strides[stage_id] == 2 and block_id == 0:
+                    stride = 2
+                else:
+                    stride = 1
+                output_channel = output_channels[block_id]
+                block_type = block_types[block_id]
+                if block_type is ECBlock:
+                    layer = ECBlock(
                         in_channels=input_channel,
-                        out_channels=input_channel,
+                        out_channels=output_channel,
                         drop=drop_rate,
-                        mlp_ratio=4,
-                        stride=1,
+                        stride=stride,
+                        path_dropout=dpr[idx + block_id],
                     )
-                )
-            for ltb_id in range(ltbs):
-                self.features.append(
-                    LTBlock(
+                    features.append(layer)
+                elif block_type is LTBlock:
+                    layer = LTBlock(
                         in_channels=input_channel,
-                        out_channels=input_channel,
-                        sr_ratio=2,
+                        out_channels=output_channel,
+                        sr_ratio=sr_ratios[stage_id],
                         drop=drop_rate,
-                        mlp_ratio=4,
                         num_heads=num_heads,
-                        stride=1,
+                        stride=stride,
                     )
-                )
+                    features.append(layer)
+                input_channel = output_channel
+            idx += numrepeat
+        self.features = nn.Sequential(*features)
 
         self.features = nn.Sequential(*self.features)
 
@@ -318,6 +335,13 @@ class MedViT(nn.Module):
 
         self.stage_out_idx = [sum(depths[: idx + 1]) - 1 for idx in range(len(depths))]
         print("initialize_weights...")
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for n, m in self.named_modules():
+            if isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm, nn.BatchNorm1d)):
+                nn.init.constant_(m.weight, 1.0)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         x = self.stem(x)
@@ -327,4 +351,139 @@ class MedViT(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.proj_head(x)
+        return x
+
+
+class Model1(nn.Module):
+    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
+        super(Model1, self).__init__()
+        self.num_classes = num_classes
+        self.head_bias = head_bias
+
+        # Patch embedding
+        if patch_embedding == "default":
+            print("Warning: Using default patch embedding.")
+            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
+        elif patch_embedding["type"] == "NaivePatchEmbedding":
+            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
+
+        elif patch_embedding["type"] == "ConvEmbedding":
+            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
+
+        elif patch_embedding["type"] == "BasicStem":
+            self.patch_embed = BasicStem(3)
+
+        elif patch_embedding["type"] == "EarlyConv":
+            self.patch_embed = EarlyConv(3, 128)
+
+        else:
+            raise NotImplementedError("Patch embedding not implemented.")
+
+        self.transformer = RVTransformer(
+            dim=128,
+            depth=6,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=drop_rate,
+        )
+        self.downsample = MedPatchEmbed(128, 64)
+
+        self.parallel = ParallelTransformers(
+            dim=64,
+            depth=6,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=drop_rate,
+        )
+
+        self.head = nn.Linear(64, num_classes, bias=head_bias)
+
+    def forward(self, x):
+        B = x.shape[0]
+        x = self.patch_embed(x)
+        x = self.transformer(x)
+        x = self.downsample(x)
+
+        x = x.view(
+            B,
+            -1,
+            64,
+        )
+        x = self.parallel(x)
+        x = x.mean(dim=1)
+        x = self.head(x)
+        return x
+
+
+class Model2(nn.Module):
+    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
+        super(Model2, self).__init__()
+        self.num_classes = num_classes
+        self.head_bias = head_bias
+
+        # Patch embedding
+        if patch_embedding == "default":
+            print("Warning: Using default patch embedding.")
+            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
+        elif patch_embedding["type"] == "NaivePatchEmbedding":
+            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
+
+        elif patch_embedding["type"] == "ConvEmbedding":
+            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
+
+        elif patch_embedding["type"] == "BasicStem":
+            self.patch_embed = BasicStem(3)
+
+        elif patch_embedding["type"] == "EarlyConv":
+            self.patch_embed = EarlyConv(3, 128)
+
+        else:
+            raise NotImplementedError("Patch embedding not implemented.")
+
+        self.transformer = Transformer(
+            dim=128,
+            depth=6,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=drop_rate,
+        )
+        self.downsample = MedPatchEmbed(128, 128, stride=2)
+
+        input_channel = 128
+        self.features = []
+        for _ in range(10):
+            for _ in range(5):
+                self.features.append(
+                    ECBlock(
+                        in_channels=input_channel,
+                        out_channels=input_channel,
+                        drop=drop_rate,
+                        mlp_ratio=4,
+                        stride=1,
+                    )
+                )
+            for _ in range(1):
+                self.features.append(
+                    LTBlock(
+                        in_channels=input_channel,
+                        out_channels=input_channel,
+                        sr_ratio=2,
+                        drop=drop_rate,
+                        mlp_ratio=4,
+                        num_heads=num_heads,
+                        stride=1,
+                    )
+                )
+        self.features = nn.Sequential(*self.features)
+
+        self.head = nn.Linear(128, num_classes, bias=head_bias)
+
+    def forward(self, x):
+        x = self.patch_embed(x)
+        x = self.transformer(x)
+        x = self.downsample(x)
+        x = self.features(x)
+        x = x.transpose(-1, -3)
+        x = x.mean(dim=1)
+        x = self.head(x)
         return x

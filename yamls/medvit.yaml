@@ -1,11 +1,11 @@
 model:
   name: "MedViT"
   params:
-    depths: [2]
-    num_heads: 4
-    drop_rate: 0.1
-    num_classes: 100
-    stem_chs: [128]
+    depths: [3, 4, 10, 3]
+    num_heads: 32
+    drop_rate: 0
+    num_classes: 1000
+    stem_chs: [64, 32, 64]
 
 optimizer:
   name: "AdamW"
@@ -19,5 +19,5 @@ training:
 
 dataset:
   name: "CIFAR100"
-  img_size: (3, 32, 32)
-  num_classes: 100
+  img_size: (3, 224, 224)
+  num_classes: 1000
