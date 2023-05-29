@@ -1,8 +1,10 @@
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+import random
 
 from models import RVT, BreguiT, MedViT, ViT
+from dataset import add_corruption
 
 MODELS = ["ViT", "BreguiT", "RVT", "MedViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -133,8 +135,18 @@ def test_model(model, loader_test, loss_function, device: str = "cpu"):
     correct = 0
 
     model.eval()
-    for imgs, cls_idxs in loader_test:
+
+    # Fix the seed for reproducibility
+    random.seed(42)
+
+    # Wrap loader with tqdm to create a progress bar
+    for imgs, cls_idxs in tqdm(loader_test):
         inputs, targets = imgs.to(device), cls_idxs.to(device)
+
+        # Add corruptions to inputs
+        corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
+        severity = random.randint(1, 5)
+        inputs = add_corruption(inputs, corruption_type, severity)
 
         with torch.no_grad():
             logits = model(inputs)
