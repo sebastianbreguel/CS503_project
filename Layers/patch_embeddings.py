@@ -333,7 +333,7 @@ class GraphPatchEmbed(nn.Module):
         - Output tensor of shape (batch_size, N, embed_dim), where N is the number of patches.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None, **kwargs):
+    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None):
         super().__init__()
         self.patch_size = patch_size
         self.embed_dim = embed_dim
@@ -345,25 +345,23 @@ class GraphPatchEmbed(nn.Module):
             bias=False,
         )
         self.norm_layer = norm_layer(embed_dim) if norm_layer else None
-        self.gcn = GCNConv(embed_dim, embed_dim)  # Define GCN layer
-        if kwargs.width is not None:
-            self.width = kwargs.width
-        if kwargs.height is not None:
-            self.height = kwargs.height
-
-    def get_patch_size(self):
-        return self.patch_size
+        self.gcn = GCNConv(embed_dim, embed_dim)
 
     def get_embed_dim(self):
         return self.embed_dim
-
+    
+    def get_patch_size(self):
+        return self.patch_size
+    
     def forward(self, x):
-        x = self.conv(x).flatten(2).transpose(-1, -2)
-        B, N, C = x.shape
+        x = self.conv(x)
+        B, C, H, W = x.shape
+        x = x.flatten(2).transpose(-1, -2)  # flatten height and width dimensions
+        N = x.shape[1]
 
         x = x.contiguous().view(B * N, C)  # flatten batch and patch dimensions
 
-        edge_index = self.get_edge_index(N)  # get edge index for GCN
+        edge_index = self.get_edge_index(H, W)  # get edge index for GCN
         x = self.gcn(x, edge_index)  # forward through GCN
         x = x.view(B, N, C)  # restore batch dimension
 
@@ -372,7 +370,8 @@ class GraphPatchEmbed(nn.Module):
 
         return x
 
-    def get_edge_index(self, nodes):
+    @staticmethod
+    def get_edge_index(height, width):
         """
         Creates an adjacency matrix for an image based on its patches.
         For now, it considers the 4 nearest neighbors (up, down, left, right)
@@ -384,25 +383,31 @@ class GraphPatchEmbed(nn.Module):
                         It has shape (2, E), where E is the number of edges in the graph, linking the nodes/patches.
         """
 
-        w = self.width
-        h = self.height
+        nodes = height * width
 
         edge_index = []
         for i in range(nodes):
-            # Get the row and column of the current patch
-            row = i // w
-            col = i % w
+            row = i // width
+            col = i % width
 
-            # For each direction (up, down, left, right), check if there is a neighboring patch
-            # If there is, add an edge in the graph
             if row - 1 >= 0:  # up
-                edge_index.append((i, i - w))
-            if row + 1 < h:  # down
-                edge_index.append((i, i + w))
+                edge_index.append((i, i - width))
+            if row + 1 < height:  # down
+                edge_index.append((i, i + width))
             if col - 1 >= 0:  # left
                 edge_index.append((i, i - 1))
-            if col + 1 < w:  # right
+            if col + 1 < width:  # right
                 edge_index.append((i, i + 1))
 
-        edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()  # Convert to tensor
+        # 4-diagonal neighbors
+        if row - 1 >= 0 and col - 1 >= 0:  # upper left
+            edge_index.append((i, i - width - 1))
+        if row - 1 >= 0 and col + 1 < width:  # upper right
+            edge_index.append((i, i - width + 1))
+        if row + 1 < height and col - 1 >= 0:  # lower left
+            edge_index.append((i, i + width - 1))
+        if row + 1 < height and col + 1 < width:  # lower right
+            edge_index.append((i, i + width + 1))
+
+        edge_index = torch.tensor(edge_index, dtype=torch.long).t()
         return edge_index
