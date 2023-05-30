@@ -16,7 +16,6 @@ from .helper import (
     h_sigmoid,
     h_swish,
     _make_divisible,
-    moex,
     trunc_normal_,
     # helper functions
     _build_projection,
