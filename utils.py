@@ -5,6 +5,9 @@ import time
 from models import MedViT, Testion
 from robust import PoolingTransformer
 from transformers import ViTConfig, ViTModel, ViTForImageClassification
+import random
+
+from dataset import add_corruption
 
 MODELS = ["ViT", "BreguiT", "RVT", "MedViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -186,8 +189,18 @@ def test_model(
     correct = 0
 
     model.eval()
-    for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
+
+    # Fix the seed for reproducibility
+    random.seed(42)
+
+    # Wrap loader with tqdm to create a progress bar
+    for imgs, cls_idxs intqdm(loader_test, total=len(loader_test)):
         inputs, targets = imgs.to(device), cls_idxs.to(device)
+
+        # Add corruptions to inputs
+        corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
+        severity = random.randint(1, 5)
+        inputs = add_corruption(inputs, corruption_type, severity)
 
         with torch.no_grad():
             logits = model(inputs)

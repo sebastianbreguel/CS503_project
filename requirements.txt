@@ -4,4 +4,4 @@ einops
 pyyaml
 tqdm
 torch_geometric
-
+opencv-python

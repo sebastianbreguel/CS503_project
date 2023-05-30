@@ -2,14 +2,12 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from torchvision.datasets import (
-    CIFAR10,
-    CIFAR100,
-    MNIST,
-    ImageFolder,
-    Food101,
-    StanfordCars,
-)
+
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder,Food101, ImageNet
+import numpy as np
+import skimage as sk
+from skimage.filters import gaussian
+import cv2
 
 
 # class StanfordCars(torch.utils.data.Dataset):
@@ -34,20 +32,63 @@ CORRUPTIONS = [
     "identity",
     "shot_noise",
     "impulse_noise",
+    "gaussian_noise",
+    "gaussian_blur",
     "glass_blur",
-    "motion_blur",
-    "shear",
-    "scale",
-    "rotate",
-    "brightness",
-    "translate",
-    "stripe",
-    "fog",
-    "spatter",
-    "dotted_line",
-    "zigzag",
-    "canny_edges",
 ]
+
+
+def add_corruption(x, corruption_type, severity=1):
+    '''
+    Some of this corruption code is from:
+    https://github.com/hendrycks/robustness/blob/master/ImageNet-C/imagenet_c/imagenet_c/corruptions.py
+    but it has been adapted and generalized to a batch of images of any size.
+    args:
+        inputs: a batch of images. shape (batch_size, C, H, W)
+        corruption_type: the type of corruption to add
+        severity: the severity of the corruption. 1, 2, 3, 4, or 5.
+    returns:
+        the corrupted images
+    '''
+    device = x.device
+    x = x.cpu().numpy() / 255.0
+    if corruption_type == "identity":
+        pass
+    elif corruption_type == "shot_noise":
+        c = [60, 25, 12, 5, 3][severity - 1]
+        x = np.clip(np.random.poisson(x * c) / float(c), 0, 1)
+    elif corruption_type == "impulse_noise":
+        c = [.03, .06, .09, 0.17, 0.27][severity - 1]
+        x = sk.util.random_noise(x, mode='s&p', amount=c)
+    elif corruption_type == "gaussian_noise":
+        c = [.08, .12, 0.18, 0.26, 0.38][severity - 1]
+        x = np.clip(x + np.random.normal(size=x.shape, scale=c), 0, 1)
+    elif corruption_type == "gaussian_blur":
+        c = [1, 2, 3, 4, 6][severity - 1]
+        for i in range(x.shape[0]):
+            x[i] = gaussian(x[i], sigma=c, channel_axis=0)
+    elif corruption_type == "glass_blur":
+        c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][severity - 1]
+        for i in range(x.shape[0]):
+            x[i] = gaussian(x[i], sigma=c[0], channel_axis=0)
+            h, w = x[i].shape[1:]
+            for _ in range(c[2]):
+                for hh in range(h - c[1], c[1], -1):
+                    for ww in range(w - c[1], c[1], -1):
+                        dx, dy = np.random.randint(-c[1], c[1], size=(2,))
+                        hh_prime, ww_prime = hh + dy, ww + dx
+                        if hh_prime >= 0 and hh_prime < h and ww_prime >= 0 and ww_prime < w:
+                            x[i, :, hh, ww], x[i, :, hh_prime, ww_prime] = x[i, :, hh_prime, ww_prime].copy(), x[i, :, hh, ww].copy()
+            x[i] = gaussian(x[i], sigma=c[0], channel_axis=0)
+    else:
+        raise ValueError(f'Invalid corruption type: {corruption_type}')
+    # Clip to ensure values are within the correct range and convert back to PyTorch tensor
+    x = np.clip(x, 0, 1)
+    # Convert to PyTorch tensor and scale back to original range (0-255) if needed.
+    x = torch.from_numpy(x).float().to(device) * 255.0
+    return x
+    
+
 
 
 def get_dataset(
