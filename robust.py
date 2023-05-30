@@ -7,7 +7,14 @@ from einops import rearrange
 
 
 class Mlp(nn.Module):
-    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.0):
+    def __init__(
+        self,
+        in_features,
+        hidden_features=None,
+        out_features=None,
+        act_layer=nn.GELU,
+        drop=0.0,
+    ):
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -20,7 +27,9 @@ class Mlp(nn.Module):
         else:
             self.fc1 = nn.Conv2d(in_features, hidden_features, 1)
             self.bn1 = nn.BatchNorm2d(hidden_features)
-            self.dwconv = nn.Conv2d(hidden_features, hidden_features, 3, padding=1, groups=hidden_features)
+            self.dwconv = nn.Conv2d(
+                hidden_features, hidden_features, 3, padding=1, groups=hidden_features
+            )
             self.bn2 = nn.BatchNorm2d(hidden_features)
             self.act = act_layer()
             self.fc2 = nn.Conv2d(hidden_features, out_features, 1)
@@ -36,7 +45,11 @@ class Mlp(nn.Module):
             x = self.drop(x)
         else:
             B, N, C = x.shape
-            x = x.reshape(B, int(N**0.5), int(N**0.5), C).permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
+            x = (
+                x.reshape(B, int(N**0.5), int(N**0.5), C)
+                .permute(0, 3, 1, 2)
+                .to(memory_format=torch.contiguous_format)
+            )
             x = self.bn1(self.fc1(x))
             x = self.act(x)
             x = self.drop(x)
@@ -48,7 +61,17 @@ class Mlp(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0.0, proj_drop=0.0, use_mask=False, size=14):
+    def __init__(
+        self,
+        dim,
+        num_heads=8,
+        qkv_bias=False,
+        qk_scale=None,
+        attn_drop=0.0,
+        proj_drop=0.0,
+        use_mask=False,
+        size=14,
+    ):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // num_heads
@@ -60,7 +83,9 @@ class Attention(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        self.W = nn.Parameter(torch.randn(size, size), requires_grad=True)  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
+        self.W = nn.Parameter(
+            torch.randn(size, size), requires_grad=True
+        )  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
 
         self.use_mask = use_mask
         if use_mask:
@@ -69,8 +94,17 @@ class Attention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
 
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).to(memory_format=torch.contiguous_format)
-        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+            .to(memory_format=torch.contiguous_format)
+        )
+        q, k, v = (
+            qkv[0],
+            qkv[1],
+            qkv[2],
+        )  # make torchscript happy (cannot use tensor as tuple)
 
         attn = q @ k.transpose(-2, -1) * self.scale
         attn = attn * (self.W)
@@ -88,15 +122,43 @@ class Attention(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, dim, num_heads, mlp_ratio=4.0, qkv_bias=False, qk_scale=None, drop=0.0, attn_drop=0.0, drop_path=0.0, act_layer=nn.GELU, norm_layer=nn.LayerNorm, use_mask=False, size=14):
+    def __init__(
+        self,
+        dim,
+        num_heads,
+        mlp_ratio=4.0,
+        qkv_bias=False,
+        qk_scale=None,
+        drop=0.0,
+        attn_drop=0.0,
+        drop_path=0.0,
+        act_layer=nn.GELU,
+        norm_layer=nn.LayerNorm,
+        use_mask=False,
+        size=14,
+    ):
         super().__init__()
         self.norm1 = norm_layer(dim)
-        self.attn = Attention(dim, num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop, use_mask=use_mask, size=size)
+        self.attn = Attention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            attn_drop=attn_drop,
+            proj_drop=drop,
+            use_mask=use_mask,
+            size=size,
+        )
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        self.mlp = Mlp(
+            in_features=dim,
+            hidden_features=mlp_hidden_dim,
+            act_layer=act_layer,
+            drop=drop,
+        )
 
     def forward(self, x):
         x = x + self.drop_path(self.attn(self.norm1(x)))
@@ -105,7 +167,19 @@ class Block(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, base_dim, depth, heads, mlp_ratio, drop_rate=0.0, attn_drop_rate=0.0, drop_path_prob=None, use_mask=False, masked_block=None, size=14):
+    def __init__(
+        self,
+        base_dim,
+        depth,
+        heads,
+        mlp_ratio,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_prob=None,
+        use_mask=False,
+        masked_block=None,
+        size=14,
+    ):
         super(Transformer, self).__init__()
         self.layers = nn.ModuleList([])
         self.depth = depth
@@ -182,7 +256,15 @@ class conv_head_pooling(nn.Module):
     def __init__(self, in_feature, out_feature, stride, padding_mode="zeros"):
         super(conv_head_pooling, self).__init__()
 
-        self.conv = nn.Conv2d(in_feature, out_feature, kernel_size=stride + 1, padding=stride // 2, stride=stride, padding_mode=padding_mode, groups=in_feature)
+        self.conv = nn.Conv2d(
+            in_feature,
+            out_feature,
+            kernel_size=stride + 1,
+            padding=stride // 2,
+            stride=stride,
+            padding_mode=padding_mode,
+            groups=in_feature,
+        )
 
     def forward(self, x):
         x = self.conv(x)
@@ -197,7 +279,9 @@ class conv_embedding(nn.Module):
         self.out_channels = out_channels
 
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)),
+            nn.Conv2d(
+                in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)
+            ),
             nn.BatchNorm2d(32),
             nn.MaxPool2d(3, stride=2, padding=1),
             nn.Conv2d(32, out_channels, kernel_size=(4, 4), stride=(4, 4)),
@@ -211,7 +295,21 @@ class conv_embedding(nn.Module):
 
 class PoolingTransformer(nn.Module):
     def __init__(
-        self, image_size, patch_size, stride, base_dims, depth, heads, mlp_ratio, num_classes=101, in_chans=3, attn_drop_rate=0.0, drop_rate=0.0, drop_path_rate=0.0, use_mask=False, masked_block=None
+        self,
+        image_size,
+        patch_size,
+        stride,
+        base_dims,
+        depth,
+        heads,
+        mlp_ratio,
+        num_classes=101,
+        in_chans=3,
+        attn_drop_rate=0.0,
+        drop_rate=0.0,
+        drop_path_rate=0.0,
+        use_mask=False,
+        masked_block=None,
     ):
         super(PoolingTransformer, self).__init__()
 
@@ -226,7 +324,9 @@ class PoolingTransformer(nn.Module):
         self.num_classes = num_classes
 
         self.patch_size = patch_size
-        self.patch_embed = conv_embedding(in_chans, base_dims[0] * heads[0], patch_size, stride, padding)
+        self.patch_embed = conv_embedding(
+            in_chans, base_dims[0] * heads[0], patch_size, stride, padding
+        )
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -235,17 +335,48 @@ class PoolingTransformer(nn.Module):
         size = [196, 49]
 
         for stage in range(len(depth)):
-            drop_path_prob = [drop_path_rate * i / total_block for i in range(block_idx, block_idx + depth[stage])]
+            drop_path_prob = [
+                drop_path_rate * i / total_block
+                for i in range(block_idx, block_idx + depth[stage])
+            ]
             block_idx += depth[stage]
 
             if stage == 0:
                 self.transformers.append(
-                    Transformer(base_dims[stage], depth[stage], heads[stage], mlp_ratio, drop_rate, attn_drop_rate, drop_path_prob, use_mask=use_mask, masked_block=masked_block, size=size[stage])
+                    Transformer(
+                        base_dims[stage],
+                        depth[stage],
+                        heads[stage],
+                        mlp_ratio,
+                        drop_rate,
+                        attn_drop_rate,
+                        drop_path_prob,
+                        use_mask=use_mask,
+                        masked_block=masked_block,
+                        size=size[stage],
+                    )
                 )
             else:
-                self.transformers.append(Transformer(base_dims[stage], depth[stage], heads[stage], mlp_ratio, drop_rate, attn_drop_rate, drop_path_prob, size=size[stage]))
+                self.transformers.append(
+                    Transformer(
+                        base_dims[stage],
+                        depth[stage],
+                        heads[stage],
+                        mlp_ratio,
+                        drop_rate,
+                        attn_drop_rate,
+                        drop_path_prob,
+                        size=size[stage],
+                    )
+                )
             if stage < len(heads) - 1:
-                self.pools.append(conv_head_pooling(base_dims[stage] * heads[stage], base_dims[stage + 1] * heads[stage + 1], stride=2))
+                self.pools.append(
+                    conv_head_pooling(
+                        base_dims[stage] * heads[stage],
+                        base_dims[stage + 1] * heads[stage + 1],
+                        stride=2,
+                    )
+                )
 
         self.norm = nn.LayerNorm(base_dims[-1] * heads[-1], eps=1e-6)
         self.embed_dim = base_dims[-1] * heads[-1]

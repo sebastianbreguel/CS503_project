@@ -1,7 +1,15 @@
 import torch
 import torch.nn as nn
 
-from .blocks import Block, CustomBlock, ECBlock, LTBlock, Parallel_blocks, RobustBlock, Model1ParallelBlock
+from .blocks import (
+    Block,
+    CustomBlock,
+    ECBlock,
+    LTBlock,
+    Parallel_blocks,
+    RobustBlock,
+    Model1ParallelBlock,
+)
 
 
 class Transformer(nn.Module):
@@ -10,13 +18,17 @@ class Transformer(nn.Module):
     Same as in the transformers graded notebook.
     """
 
-    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None) -> None:
+    def __init__(
+        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
+    ) -> None:
         super(Transformer, self).__init__()
         self.depth = depth
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+            self.blocks.append(
+                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -31,7 +43,17 @@ class ParallelTransformers(nn.Module):
 
     """
 
-    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=[0.0], masked_block=None, size=14, final=False) -> None:
+    def __init__(
+        self,
+        dim,
+        depth,
+        num_heads=8,
+        mlp_ratio=4.0,
+        drop_rate=[0.0],
+        masked_block=None,
+        size=14,
+        final=False,
+    ) -> None:
         super(ParallelTransformers, self).__init__()
         self.depth = depth
         self.blocks = []
@@ -48,7 +70,14 @@ class ParallelTransformers(nn.Module):
                 )
             )
         if final:
-            self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate[-1]))
+            self.blocks.append(
+                Block(
+                    dim=dim,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    drop=drop_rate[-1],
+                )
+            )
         self.blocks = nn.Sequential(*self.blocks)
 
     def forward(self, x) -> torch.Tensor:
@@ -78,7 +107,9 @@ class CustomTransformer(nn.Module):
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+            self.blocks.append(
+                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -116,7 +147,9 @@ class RVTransformer(nn.Module):
         self.pooling = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+            self.blocks.append(
+                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
             self.pooling.append(
                 nn.Conv2d(
                     dim,

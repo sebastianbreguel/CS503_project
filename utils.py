@@ -38,7 +38,9 @@ def get_model(config) -> torch.nn.Module:
         model = PoolingTransformer(**config["model"]["params"])
 
     else:
-        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
+        return NotImplementedError(
+            "Model not implemented. Please choose from: " + str(MODELS)
+        )
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -59,7 +61,9 @@ def get_optimizer(config, parameters) -> torch.optim.Optimizer:
         optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
 
     else:
-        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
+        return NotImplementedError(
+            "Optimizer not implemented. Please choose from: " + str(OPTIMIZERS)
+        )
 
     return optimizer
 
@@ -83,7 +87,9 @@ def get_loss(name):
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
-        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
+        raise NotImplementedError(
+            "Loss not implemented. Please choose from: " + str(LOSSES)
+        )
 
     return loss
 
@@ -163,13 +169,19 @@ def train_model(
             torch.save(best_model, f"weights/{model_name}/best_model_{localtime}.pth")
         break
 
-        print(f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}")
-        print(f"Epoch {len(train_losses)}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%")
+        print(
+            f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}"
+        )
+        print(
+            f"Epoch {len(train_losses)}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%"
+        )
 
     return model, train_losses, val_losses, train_accuracy, val_accuracy
 
 
-def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
+def test_model(
+    model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"
+):
     test_loss = 0
     correct = 0
 

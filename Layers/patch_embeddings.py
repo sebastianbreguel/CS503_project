@@ -14,7 +14,9 @@ class NaivePatchEmbed(nn.Module):
     Basic Patch Embedding Module. Same as in the transformers graded notebook.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None) -> None:
+    def __init__(
+        self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=None
+    ) -> None:
         """
         Image to Patch Embedding.
 
@@ -103,7 +105,12 @@ class ConvEmbedding(nn.Module):
         return self.embed_dim
 
     def forward(self, x):
-        x = self.proj(x).flatten(2).transpose(-1, -2).to(memory_format=torch.contiguous_format)
+        x = (
+            self.proj(x)
+            .flatten(2)
+            .transpose(-1, -2)
+            .to(memory_format=torch.contiguous_format)
+        )
         return x
 
 
@@ -116,25 +123,52 @@ class EarlyConv(nn.Module):
     using this should reduce by one the amount of heads of the transformer
     """
 
-    def __init__(self, in_ch=3, stem_chs=[64, 32, 64], out_ch=64, with_pos=False, strides=[2, 1, 1, 2]):
+    def __init__(
+        self,
+        in_ch=3,
+        stem_chs=[64, 32, 64],
+        out_ch=64,
+        with_pos=False,
+        strides=[2, 1, 1, 2],
+    ):
         super(EarlyConv, self).__init__()
         hidden_ch = out_ch // 2
-        self.conv1 = nn.Conv2d(in_ch, stem_chs[0], kernel_size=3, stride=strides[0], padding=1, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_ch, stem_chs[0], kernel_size=3, stride=strides[0], padding=1, bias=False
+        )
         self.norm1 = nn.BatchNorm2d(stem_chs[0])
 
-        self.conv2 = nn.Conv2d(stem_chs[0], stem_chs[1], kernel_size=3, stride=strides[1], padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            stem_chs[0],
+            stem_chs[1],
+            kernel_size=3,
+            stride=strides[1],
+            padding=1,
+            bias=False,
+        )
         self.norm2 = nn.BatchNorm2d(stem_chs[1])
 
-        self.conv3 = nn.Conv2d(stem_chs[1], stem_chs[2], kernel_size=3, stride=strides[2], padding=1, bias=False)
+        self.conv3 = nn.Conv2d(
+            stem_chs[1],
+            stem_chs[2],
+            kernel_size=3,
+            stride=strides[2],
+            padding=1,
+            bias=False,
+        )
         self.norm3 = nn.BatchNorm2d(stem_chs[2])
 
-        self.conv4 = nn.Conv2d(stem_chs[2], out_ch, kernel_size=3, stride=strides[3], padding=1, bias=False)
+        self.conv4 = nn.Conv2d(
+            stem_chs[2], out_ch, kernel_size=3, stride=strides[3], padding=1, bias=False
+        )
         self.norm4 = nn.BatchNorm2d(out_ch)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
         if self.with_pos:
-            self.pa_conv = nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch)
+            self.pa_conv = nn.Conv2d(
+                out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch
+            )
             self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -168,25 +202,52 @@ class BasicStem(nn.Module):
     basic patch membedding over 3 convs
     """
 
-    def __init__(self, in_ch=3, stem_chs=[64, 32, 64], out_ch=64, with_pos=False, strides=[2, 1, 1, 2]):
+    def __init__(
+        self,
+        in_ch=3,
+        stem_chs=[64, 32, 64],
+        out_ch=64,
+        with_pos=False,
+        strides=[2, 1, 1, 2],
+    ):
         super(BasicStem, self).__init__()
         hidden_ch = out_ch // 2
-        self.conv1 = nn.Conv2d(in_ch, stem_chs[0], kernel_size=3, stride=strides[0], padding=1, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_ch, stem_chs[0], kernel_size=3, stride=strides[0], padding=1, bias=False
+        )
         self.norm1 = nn.BatchNorm2d(stem_chs[0])
 
-        self.conv2 = nn.Conv2d(stem_chs[0], stem_chs[1], kernel_size=3, stride=strides[1], padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            stem_chs[0],
+            stem_chs[1],
+            kernel_size=3,
+            stride=strides[1],
+            padding=1,
+            bias=False,
+        )
         self.norm2 = nn.BatchNorm2d(stem_chs[1])
 
-        self.conv3 = nn.Conv2d(stem_chs[1], stem_chs[2], kernel_size=3, stride=strides[2], padding=1, bias=False)
+        self.conv3 = nn.Conv2d(
+            stem_chs[1],
+            stem_chs[2],
+            kernel_size=3,
+            stride=strides[2],
+            padding=1,
+            bias=False,
+        )
         self.norm3 = nn.BatchNorm2d(stem_chs[2])
 
-        self.conv4 = nn.Conv2d(stem_chs[2], out_ch, kernel_size=3, stride=strides[3], padding=1, bias=False)
+        self.conv4 = nn.Conv2d(
+            stem_chs[2], out_ch, kernel_size=3, stride=strides[3], padding=1, bias=False
+        )
         self.norm4 = nn.BatchNorm2d(out_ch)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
         if self.with_pos:
-            self.pa_conv = nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch)
+            self.pa_conv = nn.Conv2d(
+                out_ch, out_ch, kernel_size=3, padding=1, groups=out_ch
+            )
             self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -222,12 +283,18 @@ class MedPatchEmbed(nn.Module):
         self.out_channels = out_channels
 
         if stride == 2:
-            self.avgpool = nn.AvgPool2d((2, 2), stride=2, ceil_mode=True, count_include_pad=False)
-            self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, bias=False)
+            self.avgpool = nn.AvgPool2d(
+                (2, 2), stride=2, ceil_mode=True, count_include_pad=False
+            )
+            self.conv = nn.Conv2d(
+                in_channels, out_channels, kernel_size=1, stride=1, bias=False
+            )
             self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
         elif in_channels != out_channels:
             self.avgpool = nn.Identity()
-            self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, bias=False)
+            self.conv = nn.Conv2d(
+                in_channels, out_channels, kernel_size=1, stride=1, bias=False
+            )
             self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
         else:
             self.avgpool = nn.Identity()
@@ -237,7 +304,11 @@ class MedPatchEmbed(nn.Module):
     def forward(self, x):
         try:
             B, N, C = x.shape
-            x = x.transpose(-3, -1).contiguous().view(B, C, int(N**0.5), int(N**0.5))
+            x = (
+                x.transpose(-3, -1)
+                .contiguous()
+                .view(B, C, int(N**0.5), int(N**0.5))
+            )
         except:
             pass
         x = self.norm(self.conv(self.avgpool(x)))
@@ -265,7 +336,9 @@ class GraphPatchEmbed(nn.Module):
         - Output tensor of shape (batch_size, N, embed_dim), where N is the number of patches.
     """
 
-    def __init__(self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=nn.LayerNorm):
+    def __init__(
+        self, patch_size=2, in_channels=1, embed_dim=192, norm_layer=nn.LayerNorm
+    ):
         super().__init__()
         self.patch_size = patch_size
         self.embed_dim = embed_dim
@@ -362,7 +435,12 @@ class SE(nn.Module):
 
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(nn.Linear(oup, int(inp * expansion), bias=False), nn.GELU(), nn.Linear(int(inp * expansion), oup, bias=False), nn.Sigmoid())
+        self.fc = nn.Sequential(
+            nn.Linear(oup, int(inp * expansion), bias=False),
+            nn.GELU(),
+            nn.Linear(int(inp * expansion), oup, bias=False),
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
         b, c, _, _ = x.size()
@@ -430,7 +508,11 @@ class Downsample(nn.Module):
 
     def forward(self, x):
         _, C, _ = x.shape
-        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5)).to(memory_format=torch.contiguous_format)
+        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5)).to(
+            memory_format=torch.contiguous_format
+        )
         x = self.conv(x)
-        x = rearrange(x, "b c h w -> b (h w) c").to(memory_format=torch.contiguous_format)
+        x = rearrange(x, "b c h w -> b (h w) c").to(
+            memory_format=torch.contiguous_format
+        )
         return x

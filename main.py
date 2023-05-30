@@ -47,12 +47,23 @@ def main(config):
     # # # TODO: put this logic in an Algorithm class
     num_epochs = config["training"]["num_epochs"]
     loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
-    model, train_losses, val_losses, train_accuracy, val_accuracy = train_model(model, optimizer, loader_train, loader_val, num_epochs, loss, device, model_name=model_name)
+    model, train_losses, val_losses, train_accuracy, val_accuracy = train_model(
+        model,
+        optimizer,
+        loader_train,
+        loader_val,
+        num_epochs,
+        loss,
+        device,
+        model_name=model_name,
+    )
 
     localtime = time.asctime(time.localtime(time.time()))
     localtime = localtime.replace(" ", "_")
     localtime = localtime.replace(":", "_")
-    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    test_loss, test_accuracy = test_model(
+        model, loader_test, loss, device, model_name=model_name
+    )
     with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
         json.dump(
             {
