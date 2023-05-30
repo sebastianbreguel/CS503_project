@@ -7,20 +7,6 @@ model:
     drop_rate: 0.1
     num_classes: 101
     head_bias: False
-    patch_embedding:
-      type: "EarlyConv"
-      params:
-        in_channels: 3
-        embed_dim: 64
-        patch_size: 2
-        out_channels: 128
-    positional_encoding:
-      type: "Fixed2DPositionalEmbedding"
-      params:
-        additive: True
-        img_size: (224, 224)
-        requires_grad: True
-        #todo Hacer que IMG_size de dataset y positional calzen
 
 optimizer:
   name: "AdamW"
@@ -29,7 +15,7 @@ optimizer:
     weight_decay: 0.01
 
 training:
-  num_epochs: 5
+  num_epochs: 10
   loss: "cross entropy"
 
 dataset:
