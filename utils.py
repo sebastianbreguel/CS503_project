@@ -2,7 +2,8 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
-from models import RVT, BreguiT, MedViT, ViT, Model1, Model2
+from models import RVT, BreguiT, MedViT, ViT, Model1, Model2, Testion
+from robust import PoolingTransformer
 
 MODELS = ["ViT", "BreguiT", "RVT", "MedViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -26,6 +27,12 @@ def get_model(config) -> torch.nn.Module:
 
     elif config["model"]["name"] == "Model2":
         model = Model2(**config["model"]["params"])
+
+    elif config["model"]["name"] == "testion":
+        model = Testion(**config["model"]["params"])
+
+    elif config["model"]["name"] == "PoolingTransformer":
+        model = PoolingTransformer(image_size=224, patch_size=16, stride=16, base_dims=[32, 32], depth=[10, 2], heads=[6, 12], mlp_ratio=4)
 
     else:
         return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))

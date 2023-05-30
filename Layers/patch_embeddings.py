@@ -116,14 +116,13 @@ class EarlyConv(nn.Module):
     using this should reduce by one the amount of heads of the transformer
     """
 
-    def __init__(self, channels, dim, emb_dropout=0.0) -> None:
+    def __init__(self, channels, dim, emb_dropout=0.0, pos_embedding=None) -> None:
         super(EarlyConv, self).__init__()
         n_filter_list = (
             channels,
-            48,
-            96,
-            192,
-            384,
+            16,
+            32,
+            64,
         )  # hardcoding for now because that's what the paper used
 
         self.conv_layers = nn.Sequential(
@@ -132,10 +131,11 @@ class EarlyConv(nn.Module):
                     nn.Conv2d(
                         in_channels=n_filter_list[i],
                         out_channels=n_filter_list[i + 1],
-                        kernel_size=3,  # hardcoding for now because that's what the paper used
-                        stride=2,  # hardcoding for now because that's what the paper used
+                        kernel_size=3,
+                        stride=2,
                         padding=1,
-                    ),  # hardcoding for now because that's what the paper used
+                    ),
+                    nn.BatchNorm2d(n_filter_list[i + 1]),
                 )
                 for i in range(len(n_filter_list) - 1)
             ]
@@ -150,19 +150,27 @@ class EarlyConv(nn.Module):
                 kernel_size=1,  # hardcoding for now because that's what the paper used
                 padding=0,
             ),
-        )  # hardcoding for now because that's what the paper used
+        )
+        self.conv_layers.add_module(
+            "batchNorm",
+            nn.BatchNorm2d(dim),
+        )
         self.conv_layers.add_module(
             "flatten image",
             Rearrange("batch channels height width -> batch (height width) channels"),
         )
-        self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1], dim))
+        self.pos_embedding = pos_embedding
+        print("pos_embedding", pos_embedding)
+        if pos_embedding == True:
+            self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1], dim))
         self.dropout = nn.Dropout(emb_dropout)
 
     def forward(self, x):
+        print(x.shape)
         x = self.conv_layers(x)
         b, n, _ = x.shape
-
-        x += self.pos_embedding[:, :(n)]
+        if self.pos_embedding == True:
+            x += self.pos_embedding[:, :(n)]
         x = self.dropout(x)
         return x
 
@@ -187,8 +195,8 @@ class BasicStem(nn.Module):
         self.conv3 = nn.Conv2d(stem_chs[1], stem_chs[2], kernel_size=3, stride=1, padding=1, bias=False)
         self.norm3 = nn.BatchNorm2d(stem_chs[2])
 
-        self.conv4 = nn.Conv2d(stem_chs[2], stem_chs[2], kernel_size=3, stride=2, padding=1, bias=False)
-        self.norm4 = nn.BatchNorm2d(stem_chs[2])
+        self.conv4 = nn.Conv2d(stem_chs[2], out_ch, kernel_size=3, stride=2, padding=1, bias=False)
+        self.norm4 = nn.BatchNorm2d(out_ch)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos

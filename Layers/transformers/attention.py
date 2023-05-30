@@ -9,7 +9,7 @@ from Layers.helper import SELayer, _build_projection, h_swish
 from Layers.positional_encodings import RelativePos
 
 
-class BaseAttention(nn.Module):
+class Attention(nn.Module):
     """
     Original Self-Attention Layer from https://arxiv.org/pdf/1706.03762.pdf
 
@@ -21,7 +21,7 @@ class BaseAttention(nn.Module):
     """
 
     def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
-        super(BaseAttention, self).__init__()
+        super(Attention, self).__init__()
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
         self.scale = self.head_dim**-0.5
@@ -61,45 +61,7 @@ class BaseAttention(nn.Module):
 
         attn = self.dropout(self.softmax(attn))
 
-        return q, attn, v
-
-
-# baseline
-class Attention(BaseAttention):
-    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
-        """
-        params:
-            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
-            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
-            be zero.
-
-        returns:
-            Output of shape [B N C].
-        """
-        B, N, C = x.shape
-        q, attn, v = super().forward(x, mask)
         x = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
-        x = self.proj(x)
-
-        return x
-
-
-# add q to attn @ v
-class ResidualAttention(BaseAttention):
-    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
-        """
-        params:
-            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
-            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
-            be zero.
-
-        returns:
-            Output of shape [B N C].
-        """
-        B, N, C = x.shape
-        q, attn, v = super().forward(x, mask)
-        x = torch.matmul(attn, v) + q
-        x = x.transpose(1, 2).contiguous().view(B, N, C)
         x = self.proj(x)
 
         return x
@@ -110,7 +72,7 @@ class ResidualAttention(BaseAttention):
 
 # convolution pre proyection
 class ConvAttention(nn.Module):
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0, size=14) -> None:
         """
         Self-attention layer for Convolutional Proyection https://arxiv.org/pdf/2103.15808.pdf
         - Source: https://github.com/leoxiaobin/CvT/tree/main
@@ -133,6 +95,8 @@ class ConvAttention(nn.Module):
         self.Q = nn.Linear(dim, dim, bias)
         self.K = nn.Linear(dim, dim, bias)
         self.V = nn.Linear(dim, dim, bias)
+        self.size = size
+        print("size", size)
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)
@@ -141,7 +105,7 @@ class ConvAttention(nn.Module):
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
 
     def forward_conv(self, x):
-        x = rearrange(x, "b (h w) c -> b c h w", h=14, w=14)
+        x = rearrange(x, "b (h w) c -> b c h w", h=self.size, w=self.size)
 
         if self.conv_proj_q is not None:
             q = self.conv_proj_q(x)
@@ -284,75 +248,6 @@ class MultiDPHConvHeadAttention(nn.Module):
         x = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
         x = self.proj(x)
 
-        return x
-
-
-class LinAngularAttention(nn.Module):
-    """
-    Castling-ViT https://arxiv.org/pdf/2211.10526.pdf
-    - source: https://github.com/GATECH-EIC/Castling-ViT/blob/main/attention.py
-    """
-
-    def __init__(
-        self,
-        dim,
-        num_heads=8,
-        bias=False,
-        dropout=0.0,
-        res_kernel_size=9,
-        sparse_reg=False,
-    ):
-        super().__init__()
-        assert dim % num_heads == 0, "dim should be divisible by num_heads"
-        self.num_heads = num_heads
-        self.head_dim = dim // num_heads
-        self.scale = self.head_dim**-0.5
-        self.sparse_reg = sparse_reg
-
-        self.Q = nn.Linear(dim, dim, bias)
-        self.K = nn.Linear(dim, dim, bias)
-        self.V = nn.Linear(dim, dim, bias)
-
-        self.attn_drop = nn.Dropout(dropout)
-        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-        self.dconv = nn.Conv2d(
-            in_channels=self.num_heads,
-            out_channels=self.num_heads,
-            kernel_size=(res_kernel_size, 1),
-            padding=(res_kernel_size // 2, 0),
-            bias=False,
-            groups=self.num_heads,
-        )
-
-    def forward(self, x, mask=None):
-        B, N, C = x.shape
-
-        q, k, v = self.Q(x), self.K(x), self.V(x)
-        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-
-        if self.sparse_reg:
-            attn = torch.matmul(q * self.scale, k.transpose(-2, -1))
-            attn = attn.softmax(dim=-1)
-            mask = attn > 0.02  # note that the threshold could be different; adapt to your codebases.
-            sparse = mask * attn
-
-        q = q / q.norm(dim=-1, keepdim=True)
-        k = k / k.norm(dim=-1, keepdim=True)
-        dconv_v = self.dconv(v)
-
-        attn = torch.matmul(k.transpose(-2, -1), v)
-
-        if self.sparse_reg:
-            x = torch.matmul(sparse, v) + 0.5 * v + 1.0 / math.pi * torch.matmul(q, attn)
-        else:
-            x = 0.5 * v + 1.0 / math.pi * torch.matmul(q, attn)
-        x = x / x.norm(dim=-1, keepdim=True)
-        x += dconv_v
-        x = x.transpose(1, 2).contiguous().view(B, N, C)
-        x = self.proj(x)
         return x
 
 
@@ -575,127 +470,6 @@ class AxialAttention(nn.Module):
         return x
 
 
-class ALiBiAttention(nn.Module):
-    """
-    Attention with Linear Biases (ALiBi) https://arxiv.org/pdf/2108.12409.pdf
-    - source: https://github.com/jaketae/alibi/blob/main/alibi/attention.py
-    """
-
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
-        super().__init__()
-        self.num_heads = num_heads
-        self.head_dim = dim // num_heads
-        self.scale = self.head_dim**-0.5
-        self.attention_dropout = nn.Dropout(dropout)
-        self.m = self.get_alibi_slope(self.num_heads)
-
-        self.Q = nn.Linear(dim, dim, bias)
-        self.K = nn.Linear(dim, dim, bias)
-        self.V = nn.Linear(dim, dim, bias)
-
-        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-    def get_relative_positions(self, seq_len: int) -> torch.tensor:
-        x = torch.arange(seq_len)[None, :]
-        y = torch.arange(seq_len)[:, None]
-        return x - y
-
-    def get_alibi_slope(self, num_heads):
-        x = (2**8) ** (1 / num_heads)
-        return torch.tensor([1 / x ** (i + 1) for i in range(num_heads)]).unsqueeze(-1).unsqueeze(-1)
-
-    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
-        B, N, C = x.shape
-
-        q, k, v = self.Q(x), self.K(x), self.V(x)
-        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-
-        bias = (self.m * self.get_relative_positions(N)).unsqueeze(0).to(q.device)
-
-        score = torch.matmul(q, k.transpose(-1, -2)) / self.scale + bias
-
-        attn = F.softmax(score, dim=-1)
-        attn = self.attention_dropout(attn)
-
-        out = torch.matmul(attn, v)
-        out = out.transpose(1, 2).contiguous().view(B, N, C)
-
-        out = self.attention_dropout(out)
-        out = self.proj(out)
-
-        return out
-
-
-class RelativeAttention(nn.Module):
-    """
-    Self-Attention with Relative Position Representations https://arxiv.org/pdf/1803.02155v2.pdf
-    """
-
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
-        """
-
-        params:
-            :dim: Dimensionality of each token
-            :num_heads: Number of attention heads
-            :bias: Whether to use bias in the linear projection
-            :dropout: Dropout rate
-        """
-        super().__init__()
-
-        self.num_heads = num_heads
-        self.head_dim = dim // num_heads
-        self.scale = self.head_dim**-0.5
-
-        self.Q = nn.Linear(dim, dim, bias)
-        self.K = nn.Linear(dim, dim, bias)
-        self.V = nn.Linear(dim, dim, bias)
-
-        self.softmax = nn.Softmax(dim=-1)
-        self.attention_dropout = nn.Dropout(dropout)
-        self.max_length = 1028
-        self.Eq = RelativePos(dim, self.num_heads, self.head_dim)
-
-        # Projection
-        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
-        """
-        params:
-            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
-            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
-            be zero.
-
-        returns:
-            Output of shape [B N C].
-        """
-        B, N, C = x.shape
-
-        q, k, v = self.Q(x), self.K(x), self.V(x)
-        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-
-        QEr = self.Eq(q, N)
-        attn = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-
-        attn = attn + QEr
-
-        if mask is not None:
-            mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
-            attn = attn.masked_fill(mask == 0, float("-inf"))
-
-        attn = self.softmax(attn)
-        attn = self.attention_dropout(attn)
-
-        x = torch.matmul(attn, v).transpose(1, 2).contiguous().view(B, N, C)
-
-        x = self.proj(x)
-
-        return x
-
-
 class RoformerAttention(nn.Module):
     """
      RoFormer: Enhanced Transformer with Rotary Position Embedding https://arxiv.org/pdf/2104.09864.pdf
@@ -781,7 +555,7 @@ class RobustAttention(nn.Module):
     - source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
     """
 
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
+    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0, size=14) -> None:
         """
         Self-attention layer.
 
@@ -799,7 +573,8 @@ class RobustAttention(nn.Module):
         self.Q = nn.Linear(dim, dim, bias)
         self.K = nn.Linear(dim, dim, bias)
         self.V = nn.Linear(dim, dim, bias)
-        self.W = nn.Parameter(torch.randn(196, 196), requires_grad=True)  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
+        self.size = size * size
+        self.W = nn.Parameter(torch.randn(self.size, self.size), requires_grad=True)  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)

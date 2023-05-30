@@ -3,6 +3,8 @@ import ast
 import torch
 import torch.nn as nn
 
+from einops import rearrange
+
 from Layers import (
     ECBlock,
     LTBlock,
@@ -16,6 +18,7 @@ from Layers import (
     MedPatchEmbed,
     NaivePatchEmbed,
     RVTransformer,
+    RobustBlock,
     ParallelTransformers,
     SineCosinePosEmbedding,
     Transformer,
@@ -486,4 +489,113 @@ class Model2(nn.Module):
         x = x.transpose(-1, -3)
         x = x.mean(dim=1)
         x = self.head(x)
+        return x
+
+
+class Testion(nn.Module):
+    def __init__(
+        self, depth=[4, 2, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs
+    ):
+        super(Testion, self).__init__()
+        self.num_classes = num_classes
+        self.head_bias = head_bias
+        self.patch_embedding = EarlyConv(3, 128, pos_embedding=positional_encoding)
+
+        self.blocks = nn.ModuleList()
+        self.pooling = nn.ModuleList()
+        print(depth)
+        self.depth = depth
+        dpr = [x.item() for x in torch.linspace(0, drop_rate, sum(depth))]  # stochastic depth decay rule
+        print(dpr)
+        dims = [128, 192, 384, 768]
+
+        for _ in range(self.depth[0]):
+            drop = dpr[_]
+            self.blocks.append(RobustBlock(dim=128, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop, size=28))
+
+        self.pooling.append(
+            nn.Conv2d(
+                128,
+                192,
+                kernel_size=2 + 1,
+                padding=2 // 2,
+                stride=2,
+                padding_mode="zeros",
+                groups=64,
+            )
+        )
+        groups = [64, 192]
+        self.downsamples = []
+        self.parallels = []
+
+        for stage in range(len(self.depth) - 1):
+            print(stage)
+            print(dims[stage + 1])
+            print(dims[stage + 2])
+            self.downsamples.append(
+                nn.Conv2d(
+                    dims[stage + 1],
+                    dims[stage + 2],
+                    kernel_size=2 + 1,
+                    padding=2 // 2,
+                    stride=2,
+                    padding_mode="zeros",
+                    groups=groups[stage],
+                )
+            )
+            self.parallels.append(
+                ParallelTransformers(
+                    dim=dims[stage + 2],
+                    depth=2,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    drop_rate=drop_rate,
+                    size=14 // (stage + 1),
+                )
+            )
+
+        self.parallel_2 = ParallelTransformers(
+            dim=384,
+            depth=2,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            drop_rate=drop_rate,
+            size=14 // 2,
+        )
+
+        self.norm = nn.LayerNorm(384, eps=1e-6)
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))
+
+        # Classifier head
+        if num_classes > 0:
+            self.head = nn.Linear(384, num_classes)
+
+    def forward(self, x):
+        print(x.shape, "hola")
+        x_1 = self.patch_embedding(x)
+        print(x_1.shape, "xddd")
+        N, C, H = x_1.shape
+        x_0 = x
+        x = x_1
+        for state in range(self.depth[0]):
+            x = self.blocks[state](x)
+
+        for stage in range(len(self.depth) - 1):
+            N, C, H = x.shape
+            x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
+            x = self.downsamples[stage](x)
+            x = rearrange(x, "b c h w -> b (h w) c")
+            x = self.parallels[stage](x)
+
+        x = self.norm(x)
+        N, C, H = x.shape
+        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
+        print(x.shape, "hola")
+        x = self.gap(x)
+        print(x.shape, "hola")
+        x = torch.flatten(x, 1)
+        print(x.shape, "hola")
+        x = self.head(x)
+        print(x.shape, "hola")
+
         return x

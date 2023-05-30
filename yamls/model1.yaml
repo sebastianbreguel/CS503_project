@@ -18,7 +18,7 @@ model:
       type: "Fixed2DPositionalEmbedding"
       params:
         additive: True
-        img_size: (224, 224)
+        img_size: (32, 32)
         requires_grad: True
         #todo Hacer que IMG_size de dataset y positional calzen
 
@@ -34,5 +34,5 @@ training:
 
 dataset:
   name: "CIFAR10"
-  img_size: (3, 224, 224)
+  img_size: (3, 32, 32)
   num_classes: 10

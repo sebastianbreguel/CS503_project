@@ -31,10 +31,11 @@ class ParallelTransformers(nn.Module):
 
     """
 
-    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None) -> None:
+    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None, size=14) -> None:
         super(ParallelTransformers, self).__init__()
         self.depth = depth
         self.blocks = []
+        print(size, "tama;o ")
 
         for _ in range(depth):
             self.blocks.append(
@@ -43,6 +44,7 @@ class ParallelTransformers(nn.Module):
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     drop=drop_rate,
+                    size=size,
                 )
             )
 
@@ -106,6 +108,7 @@ class RVTransformer(nn.Module):
         drop_rate=0.0,
         masked_block=None,
         block=RobustBlock,
+        size=14,
     ) -> None:
         super(RVTransformer, self).__init__()
         self.depth = depth

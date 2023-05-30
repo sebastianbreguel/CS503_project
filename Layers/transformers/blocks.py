@@ -10,17 +10,13 @@ from Layers.helper import DropPath, _make_divisible
 from Layers.patch_embeddings import MedPatchEmbed
 
 from .attention import (
-    ALiBiAttention,
     Attention,
     AxialAttention,
     ConvAttention,
     EMAttention,
-    LinAngularAttention,
     LocalityFeedForward,
     MultiCHA,
     MultiDPHConvHeadAttention,
-    RelativeAttention,
-    ResidualAttention,
     RobustAttention,
     RoformerAttention,
 )
@@ -190,16 +186,7 @@ class RobustBlock(nn.Module):
     - source: https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
-    def __init__(
-        self,
-        dim,
-        num_heads,
-        drop=0.0,
-        mlp_ratio=4.0,
-        activation=nn.GELU,
-        attention=RobustAttention,
-        mlp=RobustMlp,
-    ) -> None:
+    def __init__(self, dim, num_heads, drop=0.0, mlp_ratio=4.0, activation=nn.GELU, attention=RobustAttention, mlp=RobustMlp, size=28) -> None:
         """
         Transformer encoder block with a custom Attention layer.
 
@@ -209,7 +196,7 @@ class RobustBlock(nn.Module):
         """
         super(RobustBlock, self).__init__()
 
-        self.attention = attention(dim, dropout=drop, num_heads=num_heads)
+        self.attention = attention(dim, dropout=drop, num_heads=num_heads, size=size)
         self.MLP = mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
@@ -351,6 +338,7 @@ class Model1ParallelBlock(nn.Module):
         drop=0.0,
         mlp_ratio=4.0,
         activation=nn.GELU,
+        size=14,
     ) -> None:
         """
         Transformer encoder block.
@@ -364,8 +352,8 @@ class Model1ParallelBlock(nn.Module):
         super(Model1ParallelBlock, self).__init__()
         init_values = 1e-4
 
-        self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads)
-        self.attns2 = LinAngularAttention(dim, dropout=drop, num_heads=num_heads)
+        self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads, size=size)
+        self.attns2 = Attention(dim, dropout=drop, num_heads=num_heads)
         self.gamma_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.gamma_2 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm1 = nn.LayerNorm(dim)

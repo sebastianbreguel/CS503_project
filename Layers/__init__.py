@@ -31,17 +31,13 @@ from .patch_embeddings import (
 from .positional_encodings import RelativePos, SineCosinePosEmbedding
 from .Transformers import (
     # Attention layers
-    ALiBiAttention,
     Attention,
     AxialAttention,
     ConvAttention,
     EMAttention,
-    LinAngularAttention,
     LocalityFeedForward,
     MultiCHA,
     MultiDPHConvHeadAttention,
-    RelativeAttention,
-    ResidualAttention,
     RobustAttention,
     RoformerAttention,
     # BLOCK layers
