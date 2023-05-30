@@ -1,11 +1,11 @@
 import argparse
 import ast
 import pprint
-
+import json
 import torch
 import yaml
 from torchsummary import summary
-
+import time
 from dataset import get_dataset
 from utils import (
     get_device,
@@ -26,25 +26,45 @@ def main(config):
     print(device)
 
     # loss
-    # loss = get_loss(config["training"]["loss"])
+    loss = get_loss(config["training"]["loss"])
 
     # model
     model = get_model(config)
+    # save time and hour
+
+    # model.save_weights("weights/robust/" + localtime + ".pth")
+    # load weights
 
     # Optimizer
-    # optimizer = get_optimizer(config, model.parameters())
+    optimizer = get_optimizer(config, model.parameters())
 
     input_size = ast.literal_eval(config["dataset"]["img_size"])
-    # pri   nt(model)
+    # # pri   nt(model)
     summary(model, input_size)
-    # model = model.to(device)
+    model = model.to(device)
+    model_name = config["model"]["name"]
 
-    # # TODO: put this logic in an Algorithm class
-    # num_epochs = config["training"]["num_epochs"]
-    # loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
-    # model, _, _ = train_model(model, optimizer, loader_train, loader_val, num_epochs, loss, device)
+    # # # TODO: put this logic in an Algorithm class
+    num_epochs = config["training"]["num_epochs"]
+    loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
+    model, train_losses, val_losses, train_accuracy, val_accuracy = train_model(model, optimizer, loader_train, loader_val, num_epochs, loss, device, model_name=model_name)
 
-    # test_model(model, loader_test, loss, device)
+    localtime = time.asctime(time.localtime(time.time()))
+    localtime = localtime.replace(" ", "_")
+    localtime = localtime.replace(":", "_")
+    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
+        json.dump(
+            {
+                "train_losses": train_losses,
+                "val_losses": val_losses,
+                "train_accuracy": train_accuracy,
+                "val_accuracy": val_accuracy,
+                "test_loss": test_loss,
+                "test_accuracy": test_accuracy,
+            },
+            outfile,
+        )
 
 
 if __name__ == "__main__":

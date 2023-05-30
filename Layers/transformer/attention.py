@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from Layers.helper import SELayer, _build_projection, h_swish
+from Layers.helper import SELayer, _build_projection, h_swish, trunc_normal_
 from Layers.positional_encodings import RelativePos
 
 
@@ -35,6 +35,13 @@ class Attention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
@@ -102,6 +109,12 @@ class ConvAttention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear, nn.Conv2d):
+            trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
 
     def forward_conv(self, x):
         x = rearrange(x, "b (h w) c -> b c h w", h=self.size, w=self.size)
@@ -394,81 +407,6 @@ class LocalityFeedForward(nn.Module):
 ######################################
 
 
-class AxialAttention(nn.Module):
-    """
-    Axial-DeepLab: Stand-Alone Axial-Attention for Panoptic Segmentation https://arxiv.org/pdf/2003.07853.pdf
-    """
-
-    def __init__(self, dim, num_heads=8, bias=False, dropout=0.0) -> None:
-        """
-
-        params:
-            :dim: Dimensionality of each token
-            :num_heads: Number of attention heads
-            :bias: Whether to use bias in the linear projection
-            :dropout: Dropout rate
-        """
-        super().__init__()
-
-        self.num_heads = num_heads
-        self.head_dim = dim // num_heads
-        self.scale = self.head_dim**-0.5
-
-        self.Q = nn.Linear(dim, dim, bias)
-        self.K = nn.Linear(dim, dim, bias)
-        self.V = nn.Linear(dim, dim, bias)
-
-        self.softmax = nn.Softmax(dim=-1)
-        self.attention_dropout = nn.Dropout(dropout)
-        self.max_length = 1028
-        self.Eq = RelativePos(dim, self.num_heads, self.head_dim)
-        self.Ek = RelativePos(dim, self.num_heads, self.head_dim)
-        self.Ev = RelativePos(dim, self.num_heads, self.head_dim)
-
-        # Projection
-        self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-    def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
-        """
-        params:
-            :x: Input of shape [B N C]. B = batch size, N = sequence length, C = token dimensionality
-            :mask: Optional attention mask of shape [B N N]. Wherever it is True, the attention matrix will
-            be zero.
-
-        returns:
-            Output of shape [B N C].
-        """
-        B, N, C = x.shape
-
-        q, k, v = self.Q(x), self.K(x), self.V(x)
-        q = q.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        k = k.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, N, self.num_heads, self.head_dim).transpose(1, 2)
-
-        QEr = self.Eq(q, N)
-        KEr = self.Ek(k, N)
-        attn = torch.matmul(q, k.transpose(-1, -2))
-
-        attn = (attn + QEr + KEr) * self.scale
-
-        if mask is not None:
-            mask = rearrange(mask, "b n1 n2 -> b 1 n1 n2")
-            attn = attn.masked_fill(mask == 0, float("-inf"))
-
-        attn = self.softmax(attn)
-        attn = self.attention_dropout(attn)
-
-        VEr = self.Ev(attn, N, transpose=False)
-        sv = torch.matmul(attn, v)
-
-        x = sv + VEr
-        x = x.transpose(1, 2).contiguous().view(B, N, C)
-
-        x = self.proj(x)
-
-        return x
-
-
 class RoformerAttention(nn.Module):
     """
      RoFormer: Enhanced Transformer with Rotary Position Embedding https://arxiv.org/pdf/2104.09864.pdf
@@ -497,7 +435,7 @@ class RoformerAttention(nn.Module):
             self.attention_head_size,
         )
         x = x.view(*new_x_shape)
-        return x.permute(0, 2, 1, 3)
+        return x.permute(0, 2, 1, 3).to(memory_format=torch.contiguous_format)
 
     def sinusoidal_position_embeddings(self, inputs):
         output_dim = self.dim // self.num_heads
@@ -580,6 +518,12 @@ class RobustAttention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=0.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """

@@ -1,6 +1,5 @@
 from .attention import (
     Attention,
-    AxialAttention,
     ConvAttention,
     EMAttention,
     LocalityFeedForward,

@@ -1,32 +1,22 @@
 model:
-  name: "PoolingTransformer"
+  name: "robust"
   params:
-    depth: 10
-    num_heads: 4
-    mlp_ratio: 4.0
+    image_size: 224
+    patch_size: 16
+    stride: 16
+    base_dims: [32, 32]
+    depth: [8, 2]
+    heads: [6, 12]
+    mlp_ratio: 4
+    attn_drop_rate: 0.1
     drop_rate: 0.1
-    num_classes: 10
-    head_bias: False
-    patch_embedding:
-      type: "EarlyConv"
-      params:
-        in_channels: 3
-        embed_dim: 64
-        patch_size: 2
-        out_channels: 128
-    positional_encoding:
-      type: "Fixed2DPositionalEmbedding"
-      params:
-        additive: True
-        img_size: (224, 224)
-        requires_grad: True
-        #todo Hacer que IMG_size de dataset y positional calzen
+    drop_path_rate: 0.1
 
 optimizer:
   name: "AdamW"
   params:
-    lr: 0.001
-    weight_decay: 0.01
+    lr: 0.0005
+    weight_decay: 0.001
 
 training:
   num_epochs: 5
@@ -35,4 +25,4 @@ training:
 dataset:
   name: "FOOD101"
   img_size: (3, 224, 224)
-  num_classes: 10
+  num_classes: 101

@@ -17,6 +17,7 @@ from .helper import (
     h_swish,
     _make_divisible,
     moex,
+    trunc_normal_,
     # helper functions
     _build_projection,
 )
@@ -34,7 +35,6 @@ from .positional_encodings import RelativePos, SineCosinePosEmbedding
 from .transformer import (
     # Attention layers
     Attention,
-    AxialAttention,
     ConvAttention,
     EMAttention,
     LocalityFeedForward,

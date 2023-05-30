@@ -1,9 +1,9 @@
 model:
   name: "MedViT"
   params:
-    depths: [3, 4, 10, 3]
+    depths: [3, 4, 2, 2]
     num_heads: 32
-    drop_rate: 0
+    drop_rate: 0.1
     num_classes: 101
     stem_chs: [64, 32, 64]
 

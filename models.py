@@ -14,6 +14,7 @@ from Layers import (
     CustomTransformer,
     Downsample,
     GraphPatchEmbed,
+    trunc_normal_,
     LayerNorm,
     MedVitTransformer,
     MedPatchEmbed,
@@ -26,239 +27,6 @@ from Layers import (
     SineCosinePosEmbedding,
     Transformer,
 )
-
-
-class ViT(nn.Module):
-    """
-    Original Vision Transformer Model   (https://arxiv.org/pdf/2010.11929.pdf).
-    """
-
-    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
-        """
-        A Vision Transformer for classification.
-
-        params:
-            :img_size: Image height and width in pixels
-            :patch_size: Patch size height and width in pixels
-            :in_channels: Number of input channels
-            :embed_dim: Token dimension
-            :num_classes: Number of classes
-            :depth: Transformer depth
-            :num_heads: Number of attention heads
-            :mlp_ratio: MLP hidden dimensionality multiplier
-        """
-        super(ViT, self).__init__()
-
-        # Patch embedding
-        if patch_embedding == "default":
-            print("Warning: Using default patch embedding.")
-            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
-        elif patch_embedding["type"] == "NaivePatchEmbedding":
-            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
-        elif patch_embedding["type"] == "GraphPatchEmbedding":
-            self.patch_embed = GraphPatchEmbed(**patch_embedding["params"])
-        else:
-            raise NotImplementedError("Patch embedding not implemented.")
-        embed_dim = self.patch_embed.get_embed_dim()
-
-        # Positional encoding
-        if positional_encoding == None:
-            self.positional_encoding = None
-            print("Warning: No positional encoding.")
-
-        elif positional_encoding["type"] == "Fixed2DPositionalEmbedding":
-            img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-            self.positional_encoding = SineCosinePosEmbedding(
-                img_size[0] // self.patch_embed.get_patch_size(),
-                img_size[1] // self.patch_embed.get_patch_size(),
-                embed_dim=embed_dim,
-                requires_grad=False,
-            )
-
-        else:
-            raise NotImplementedError("Positional encoding not implemented.")
-
-        self.transformer = Transformer(
-            dim=embed_dim,
-            depth=depth,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-
-        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
-
-    def forward(self, x):
-        proj = self.patch_embed(x)
-
-        if self.positional_encoding is not None:
-            proj = proj + self.positional_encoding(proj)
-
-        proj = self.transformer(proj)
-
-        pooled = proj.mean(dim=1)
-        logits = self.head(pooled)
-
-        return logits
-
-
-class BreguiT(nn.Module):
-    """
-    Personal version of Vision transformers
-    """
-
-    def __init__(
-        self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, preLayerNorm=False, **kwargs
-    ):
-        """
-        A Vision Transformer for classification.
-
-        params:
-            :img_size: Image height and width in pixels
-            :patch_size: Patch size height and width in pixels
-            :in_channels: Number of input channels
-            :embed_dim: Token dimension
-            :num_classes: Number of classes
-            :depth: Transformer depth
-            :num_heads: Number of attention heads
-            :mlp_ratio: MLP hidden dimensionality multiplier
-        """
-        super(BreguiT, self).__init__()
-
-        img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-        self.PrelayerNorm = LayerNorm([patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]) if preLayerNorm else nn.Identity()
-
-        # Patch embedding
-        if patch_embedding == "default":
-            print("Warning: Using default patch embedding.")
-            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
-        elif patch_embedding["type"] == "NaivePatchEmbedding":
-            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "ConvEmbedding":
-            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
-        else:
-            raise NotImplementedError("Patch embedding not implemented.")
-        embed_dim = self.patch_embed.get_embed_dim()
-
-        # Positional encoding
-        if positional_encoding == None:
-            self.positional_encoding = None
-            print("Warning: No positional encoding.")
-        elif positional_encoding["type"] == "Fixed2DPositionalEmbedding":
-            img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-            self.positional_encoding = SineCosinePosEmbedding(
-                img_size[0] // self.patch_embed.get_patch_size(),
-                img_size[1] // self.patch_embed.get_patch_size(),
-                embed_dim=embed_dim,
-                requires_grad=positional_encoding["params"]["requires_grad"],
-            )
-        else:
-            raise NotImplementedError("Positional encoding not implemented.")
-        self.transformer = CustomTransformer(
-            dim=embed_dim,
-            depth=depth,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
-
-    def forward(self, x):
-        proj = self.patch_embed(x)
-
-        if self.positional_encoding is not None:
-            proj = proj + self.positional_encoding(proj)
-
-        proj = self.transformer(proj)
-
-        pooled = proj.mean(dim=1)
-        logits = self.head(pooled)
-
-        return logits
-
-
-class RVT(nn.Module):
-    """
-    Robust Vision Transformerhttps://arxiv.org/pdf/2105.07926.pdf
-    source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
-    """
-
-    def __init__(
-        self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, preLayerNorm=False, **kwargs
-    ):
-        """
-        A Vision Transformer for classification.
-
-        params:
-            :img_size: Image height and width in pixels
-            :patch_size: Patch size height and width in pixels
-            :in_channels: Number of input channels
-            :embed_dim: Token dimension
-            :num_classes: Number of classes
-            :depth: Transformer depth
-            :num_heads: Number of attention heads
-            :mlp_ratio: MLP hidden dimensionality multiplier
-        """
-        super(RVT, self).__init__()
-
-        img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-        self.PrelayerNorm = LayerNorm([patch_embedding["params"]["in_channels"], img_size[0], img_size[1]]) if preLayerNorm else nn.Identity()
-
-        # Patch embedding
-        if patch_embedding == "default":
-            print("Warning: Using default patch embedding.")
-            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
-        elif patch_embedding["type"] == "NaivePatchEmbedding":
-            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "ConvEmbedding":
-            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
-        else:
-            raise NotImplementedError("Patch embedding not implemented.")
-        embed_dim = self.patch_embed.get_embed_dim()
-
-        # Positional encoding
-        if positional_encoding == None:
-            self.positional_encoding = None
-            print("Warning: No positional encoding.")
-        elif positional_encoding["type"] == "Fixed2DPositionalEmbedding":
-            img_size = ast.literal_eval(positional_encoding["params"]["img_size"])
-            self.positional_encoding = SineCosinePosEmbedding(
-                img_size[0] // self.patch_embed.get_patch_size(),
-                img_size[1] // self.patch_embed.get_patch_size(),
-                embed_dim=embed_dim,
-                requires_grad=positional_encoding["params"]["requires_grad"],
-            )
-        else:
-            raise NotImplementedError("Positional encoding not implemented.")
-        self.transformer = CustomTransformer(
-            dim=embed_dim,
-            depth=depth,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-        self.head = nn.Sequential(nn.LayerNorm(embed_dim), nn.Linear(embed_dim, num_classes, bias=head_bias))
-
-        self.pooling = nn.AvgPool2d(1)
-        self.norm = nn.LayerNorm(embed_dim)
-
-    def forward(self, x):
-        # x = self.PrelayerNorm(x)
-
-        proj = self.patch_embed(x)
-
-        if self.positional_encoding is not None:
-            proj = proj + self.positional_encoding(proj)
-
-        proj = self.transformer(proj)
-        proj = self.norm(self.pooling(proj).squeeze())
-
-        pooled = proj.mean(dim=1)
-        logits = self.head(pooled)
-
-        return logits
 
 
 class MedViT(nn.Module):
@@ -282,13 +50,13 @@ class MedViT(nn.Module):
 
         self.stem = BasicStem(3)
 
-        self.stage_out_channels = [[96] * (depths[0]), [192] * (depths[1] - 1) + [256], [384, 384, 384, 384, 512] * (depths[2] // 5), [768] * (depths[3] - 1) + [1024]]
+        self.stage_out_channels = [[96] * (depths[0]), [128] * (depths[1] - 1) + [192], [256, 384] * (depths[2] // 2), [384] * (depths[3] - 1) + [512]]
 
         # Next Hybrid Strategy
         self.stage_block_types = [
             [ECBlock] * depths[0],
             [ECBlock] * (depths[1] - 1) + [LTBlock],
-            [ECBlock, ECBlock, ECBlock, ECBlock, LTBlock] * (depths[2] // 5),
+            [ECBlock, LTBlock] * (depths[2] // 2),
             [ECBlock] * (depths[3] - 1) + [LTBlock],
         ]
 
@@ -333,7 +101,6 @@ class MedViT(nn.Module):
         self.features = nn.Sequential(*self.features)
 
         self.norm = nn.BatchNorm2d(input_channel, eps=1e-6)
-
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.proj_head = nn.Sequential(
             nn.Linear(input_channel, num_classes),
@@ -360,159 +127,23 @@ class MedViT(nn.Module):
         return x
 
 
-class Model1(nn.Module):
-    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
-        super(Model1, self).__init__()
-        self.num_classes = num_classes
-        self.head_bias = head_bias
-
-        # Patch embedding
-        if patch_embedding == "default":
-            print("Warning: Using default patch embedding.")
-            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
-        elif patch_embedding["type"] == "NaivePatchEmbedding":
-            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "ConvEmbedding":
-            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "BasicStem":
-            self.patch_embed = BasicStem(3)
-
-        elif patch_embedding["type"] == "EarlyConv":
-            self.patch_embed = EarlyConv(3, 128)
-
-        else:
-            raise NotImplementedError("Patch embedding not implemented.")
-
-        self.transformer = RVTransformer(
-            dim=128,
-            depth=6,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-        self.downsample = MedPatchEmbed(128, 64)
-
-        self.parallel = ParallelTransformers(
-            dim=64,
-            depth=6,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-
-        self.head = nn.Linear(64, num_classes, bias=head_bias)
-
-    def forward(self, x):
-        B = x.shape[0]
-        x = self.patch_embed(x)
-        x = self.transformer(x)
-        x = self.downsample(x)
-
-        x = x.view(
-            B,
-            -1,
-            64,
-        )
-        x = self.parallel(x)
-        x = x.mean(dim=1)
-        x = self.head(x)
-        return x
-
-
-class Model2(nn.Module):
-    def __init__(self, depth=4, num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=None, img_size=(28, 28), num_classes=10, head_bias=False, **kwargs):
-        super(Model2, self).__init__()
-        self.num_classes = num_classes
-        self.head_bias = head_bias
-
-        # Patch embedding
-        if patch_embedding == "default":
-            print("Warning: Using default patch embedding.")
-            self.patch_embed = NaivePatchEmbed(embed_dim=192, in_channels=1)
-        elif patch_embedding["type"] == "NaivePatchEmbedding":
-            self.patch_embed = NaivePatchEmbed(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "ConvEmbedding":
-            self.patch_embed = ConvEmbedding(**patch_embedding["params"])
-
-        elif patch_embedding["type"] == "BasicStem":
-            self.patch_embed = BasicStem(3)
-
-        elif patch_embedding["type"] == "EarlyConv":
-            self.patch_embed = EarlyConv(3, 128)
-
-        else:
-            raise NotImplementedError("Patch embedding not implemented.")
-
-        self.transformer = Transformer(
-            dim=128,
-            depth=6,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-        )
-        self.downsample = MedPatchEmbed(128, 128, stride=2)
-
-        input_channel = 128
-        self.features = []
-        for _ in range(10):
-            for _ in range(5):
-                self.features.append(
-                    ECBlock(
-                        in_channels=input_channel,
-                        out_channels=input_channel,
-                        drop=drop_rate,
-                        mlp_ratio=4,
-                        stride=1,
-                    )
-                )
-            for _ in range(1):
-                self.features.append(
-                    LTBlock(
-                        in_channels=input_channel,
-                        out_channels=input_channel,
-                        sr_ratio=2,
-                        drop=drop_rate,
-                        mlp_ratio=4,
-                        num_heads=num_heads,
-                        stride=1,
-                    )
-                )
-        self.features = nn.Sequential(*self.features)
-
-        self.head = nn.Linear(128, num_classes, bias=head_bias)
-
-    def forward(self, x):
-        x = self.patch_embed(x)
-        x = self.transformer(x)
-        x = self.downsample(x)
-        x = self.features(x)
-        x = x.transpose(-1, -3)
-        x = x.mean(dim=1)
-        x = self.head(x)
-        return x
-
-
 class Testion(nn.Module):
-    def __init__(
-        self, depth=[4, 2, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs
-    ):
+    def __init__(self, depth=[4, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs):
         super(Testion, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
-        self.patch_embedding = EarlyConv(3, 128, pos_embedding=positional_encoding)
+        self.patch_embedding = BasicStem(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
 
-        initial_size = img_size[0] // 8
+        initial_size = img_size[0] // 16
 
         self.blocks = nn.ModuleList()
         self.depth = depth
         dpr = [x.item() for x in torch.linspace(0, drop_rate, sum(depth))]  # stochastic depth decay rule
-        dims = [128, 256, 512]
-        groups = [64, 256]
+        dims = [128, 192]
+        groups = [64]
         self.downsamples = nn.ModuleList()
         self.parallels = nn.ModuleList()
+        final_attention = [True, True]
 
         for _ in range(self.depth[0]):
             drop = dpr[_]
@@ -520,9 +151,12 @@ class Testion(nn.Module):
 
         for stage in range(len(self.depth) - 1):
             aux_size = initial_size // ((stage + 1) * 2)
+            drop = dpr[self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]]
             self.downsamples.append(
-                ReduceSize(
+                Downsample(
                     dims[stage],
+                    dims[stage + 1],
+                    groups[stage],
                 )
             )
 
@@ -532,8 +166,9 @@ class Testion(nn.Module):
                     depth=self.depth[stage + 1],
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
-                    drop_rate=dpr[self.depth[0] + stage],
-                    size=initial_size // ((stage + 1) * 2),
+                    drop_rate=drop,
+                    size=aux_size,
+                    final=final_attention[stage],
                 )
             )
 
@@ -545,11 +180,29 @@ class Testion(nn.Module):
         )
 
         # Classifier head
-        if num_classes > 0:
-            self.head = nn.Linear(dims[-1], num_classes, bias=head_bias)
+        self.head = nn.Linear(dims[-1], num_classes, bias=head_bias)
+        self.head_drop = nn.Dropout(dpr[-1])
+        print("init weights...")
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for n, m in self.named_modules():
+            if isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm, nn.BatchNorm1d)):
+                nn.init.constant_(m.weight, 1.0)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                trunc_normal_(m.weight, std=0.02)
+                nn.init.xavier_uniform_(m.weight)
+                if hasattr(m, "bias") and m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Conv2d):
+                trunc_normal_(m.weight, std=0.02)
+                if hasattr(m, "bias") and m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         x = self.patch_embedding(x)
+        x = x.flatten(2).transpose(1, 2)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
 
@@ -561,5 +214,6 @@ class Testion(nn.Module):
         x = self.gap(x)
         x = torch.flatten(x, 1)
         x = self.head(x)
+        x = self.head_drop(x)
 
         return x

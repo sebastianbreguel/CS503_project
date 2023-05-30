@@ -31,23 +31,24 @@ class ParallelTransformers(nn.Module):
 
     """
 
-    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None, size=14) -> None:
+    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=[0.0], masked_block=None, size=14, final=False) -> None:
         super(ParallelTransformers, self).__init__()
         self.depth = depth
         self.blocks = []
 
         for _ in range(depth):
+            drop = drop_rate[_]
             self.blocks.append(
                 Model1ParallelBlock(
                     dim=dim,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
-                    drop=drop_rate,
+                    drop=drop,
                     size=size,
                 )
             )
-
-        self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+        if final:
+            self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate[-1]))
         self.blocks = nn.Sequential(*self.blocks)
 
     def forward(self, x) -> torch.Tensor:

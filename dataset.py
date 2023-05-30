@@ -5,7 +5,23 @@ from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder, Food101, StanfordCars
 
 
-BATCH_SIZE = 2
+# class StanfordCars(torch.utils.data.Dataset):
+#     def __init__(self, root_path, transform=None):
+#         self.images = [os.path.join(root_path, file) for file in os.listdir(root_path)]
+#         self.transform = transform
+
+#     def __len__(self):
+#         return len(self.images)
+
+#     def __getitem__(self, index):
+#         image_file = self.images[index]
+#         image = Image.open(image_file).convert("RGB")
+#         if self.transform:
+#             image = self.transform(image)
+#         return image[None]
+
+
+BATCH_SIZE = 16
 
 CORRUPTIONS = [
     "identity",
@@ -93,10 +109,17 @@ def get_dataset(
         # TODO Imagnet
         # TODO Cifar10-100  and Imagnet C
     elif name == "FOOD101":
-        transform = transforms.Compose(
+        transform_train = transforms.Compose(
             [
                 transforms.Resize(size=(224, 224)),
-                # transforms.TrivialAugmentWide(num_magnitude_bins=31),
+                torchvision.transforms.AugMix(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
+        transform_test = transforms.Compose(
+            [
+                transforms.Resize(size=(224, 224)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]
@@ -106,39 +129,16 @@ def get_dataset(
             root="./data",
             split="train",
             download=True,
-            transform=transform,
+            transform=transform_train,
         )
         dataset_test = Food101(
             root="./data",
             split="test",
             download=True,
-            transform=transform,
+            transform=transform_test,
         )
         dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
 
-    elif name == "STANFORDCARS":
-        transform = transforms.Compose(
-            [
-                transforms.Resize(size=(224, 224)),
-                # transforms.TrivialAugmentWide(num_magnitude_bins=31),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-
-        dataset_train_val = StanfordCars(
-            root="./data",
-            split="train",
-            download=True,
-            transform=transform,
-        )
-        dataset_test = StanfordCars(
-            root="./data",
-            split="test",
-            download=True,
-            transform=transform,
-        )
-        print(len(dataset_train_val))
         dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
 
     loader_train = DataLoader(

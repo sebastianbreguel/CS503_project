@@ -7,9 +7,7 @@ class Mlp(nn.Module):
     Base two layer MLP. From the transformers notebook.
     """
 
-    def __init__(
-        self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0
-    ) -> None:
+    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0) -> None:
         """
         params:
             :dim: Dimensionality of each token
@@ -27,6 +25,16 @@ class Mlp(nn.Module):
             nn.Dropout(dropout),
         )
 
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out")
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
+
     def forward(self, x) -> torch.Tensor:
         return self.mlp(x)  # returns output of the same dimension as the input
 
@@ -37,9 +45,7 @@ class RobustMlp(nn.Module):
     - source https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
-    def __init__(
-        self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0
-    ) -> None:
+    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0) -> None:
         """
         params:
             :dim: Dimensionality of each token
@@ -63,14 +69,19 @@ class RobustMlp(nn.Module):
         self.fc2 = nn.Conv2d(self.hidden_features, dim, 1)
         self.bn3 = nn.BatchNorm2d(dim)
         self.drop = nn.Dropout(dropout)
+        self.init_weights()
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x) -> torch.Tensor:
         B, N, C = x.shape
-        x = (
-            x.reshape(B, int(N**0.5), int(N**0.5), C)
-            .permute(0, 3, 1, 2)
-            .to(memory_format=torch.contiguous_format)
-        )
+        x = x.reshape(B, int(N**0.5), int(N**0.5), C).permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
         x = self.fc1(x)
         x = self.bn1(x)
         x = self.act(x)
