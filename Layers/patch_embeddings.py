@@ -160,13 +160,11 @@ class EarlyConv(nn.Module):
             Rearrange("batch channels height width -> batch (height width) channels"),
         )
         self.pos_embedding = pos_embedding
-        print("pos_embedding", pos_embedding)
         if pos_embedding == True:
             self.pos_embedding = nn.Parameter(torch.randn(1, n_filter_list[-1], dim))
         self.dropout = nn.Dropout(emb_dropout)
 
     def forward(self, x):
-        print(x.shape)
         x = self.conv_layers(x)
         b, n, _ = x.shape
         if self.pos_embedding == True:
@@ -346,3 +344,92 @@ class GraphPatchEmbed(nn.Module):
 
         edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()  # Convert to tensor
         return edge_index
+
+
+class SE(nn.Module):
+    """
+    Squeeze and excitation block
+    """
+
+    def __init__(self, inp, oup, expansion=0.25):
+        """
+        Args:
+            inp: input features dimension.
+            oup: output features dimension.
+            expansion: expansion ratio.
+        """
+
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(nn.Linear(oup, int(inp * expansion), bias=False), nn.GELU(), nn.Linear(int(inp * expansion), oup, bias=False), nn.Sigmoid())
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
+
+
+class ReduceSize(nn.Module):
+    """
+    Down-sampling block based on: "Hatamizadeh et al.,
+    Global Context Vision Transformers <https://arxiv.org/abs/2206.09959>"
+    """
+
+    def __init__(self, dim, norm_layer=nn.LayerNorm, keep_dim=False):
+        """
+        Args:
+            dim: feature size dimension.
+            norm_layer: normalization layer.
+            keep_dim: bool argument for maintaining the resolution.
+        """
+
+        super().__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(dim, dim, 3, 1, 1, groups=dim, bias=False),
+            nn.GELU(),
+            SE(dim, dim),
+            nn.Conv2d(dim, dim, 1, 1, 0, bias=False),
+        )
+        if keep_dim:
+            dim_out = dim
+        else:
+            dim_out = 2 * dim
+        self.reduction = nn.Conv2d(dim, dim_out, 3, 2, 1, bias=False)
+        self.norm2 = norm_layer(dim_out)
+        self.norm1 = norm_layer(dim)
+
+    def forward(self, x):
+        x = x.contiguous()
+        x = self.norm1(x)
+        _, C, _ = x.shape
+        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
+        x = x + self.conv(x)
+        x = self.reduction(x)
+        x = rearrange(x, "b c h w -> b h w c")
+        x = self.norm2(x)
+        x = rearrange(x, "b h w c -> b (h w) c")
+        return x
+
+
+class Downsample(nn.Module):
+    "Class used to downsample the dimentions of a input to a given output size."
+
+    def __init__(self, in_channels, out_channels, groups):
+        super().__init__()
+        self.conv = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=2 + 1,
+            padding=2 // 2,
+            stride=2,
+            padding_mode="zeros",
+            groups=groups,
+        )
+
+    def forward(self, x):
+        _, C, _ = x.shape
+        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
+        x = self.conv(x)
+        x = rearrange(x, "b c h w -> b (h w) c")
+        return x

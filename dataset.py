@@ -2,7 +2,8 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder, Food101
+from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder, Food101, StanfordCars
+
 
 BATCH_SIZE = 2
 
@@ -28,7 +29,7 @@ CORRUPTIONS = [
 
 def get_dataset(
     name: str,
-    num_workers: int = 8,
+    num_workers: int = 1,
 ):
     if name == "MNIST":
         transform = torchvision.transforms.Compose(
@@ -113,6 +114,31 @@ def get_dataset(
             download=True,
             transform=transform,
         )
+        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
+
+    elif name == "STANFORDCARS":
+        transform = transforms.Compose(
+            [
+                transforms.Resize(size=(224, 224)),
+                # transforms.TrivialAugmentWide(num_magnitude_bins=31),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
+
+        dataset_train_val = StanfordCars(
+            root="./data",
+            split="train",
+            download=True,
+            transform=transform,
+        )
+        dataset_test = StanfordCars(
+            root="./data",
+            split="test",
+            download=True,
+            transform=transform,
+        )
+        print(len(dataset_train_val))
         dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
 
     loader_train = DataLoader(

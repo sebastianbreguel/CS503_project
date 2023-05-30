@@ -3,22 +3,25 @@ import ast
 import torch
 import torch.nn as nn
 
-from einops import rearrange
-
+from einops.layers.torch import Rearrange
 from Layers import (
     ECBlock,
     LTBlock,
+    Block,
     EarlyConv,
     BasicStem,
     ConvEmbedding,
     CustomTransformer,
+    Downsample,
     GraphPatchEmbed,
     LayerNorm,
     MedVitTransformer,
     MedPatchEmbed,
+    Model1ParallelBlock,
     NaivePatchEmbed,
     RVTransformer,
     RobustBlock,
+    ReduceSize,
     ParallelTransformers,
     SineCosinePosEmbedding,
     Transformer,
@@ -501,101 +504,62 @@ class Testion(nn.Module):
         self.head_bias = head_bias
         self.patch_embedding = EarlyConv(3, 128, pos_embedding=positional_encoding)
 
+        initial_size = img_size[0] // 8
+
         self.blocks = nn.ModuleList()
-        self.pooling = nn.ModuleList()
-        print(depth)
         self.depth = depth
         dpr = [x.item() for x in torch.linspace(0, drop_rate, sum(depth))]  # stochastic depth decay rule
-        print(dpr)
-        dims = [128, 192, 384, 768]
+        dims = [128, 256, 512]
+        groups = [64, 256]
+        self.downsamples = nn.ModuleList()
+        self.parallels = nn.ModuleList()
 
         for _ in range(self.depth[0]):
             drop = dpr[_]
-            self.blocks.append(RobustBlock(dim=128, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop, size=28))
-
-        self.pooling.append(
-            nn.Conv2d(
-                128,
-                192,
-                kernel_size=2 + 1,
-                padding=2 // 2,
-                stride=2,
-                padding_mode="zeros",
-                groups=64,
-            )
-        )
-        groups = [64, 192]
-        self.downsamples = []
-        self.parallels = []
+            self.blocks.append(RobustBlock(dim=dims[0], num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop, size=initial_size))
 
         for stage in range(len(self.depth) - 1):
-            print(stage)
-            print(dims[stage + 1])
-            print(dims[stage + 2])
+            aux_size = initial_size // ((stage + 1) * 2)
             self.downsamples.append(
-                nn.Conv2d(
-                    dims[stage + 1],
-                    dims[stage + 2],
-                    kernel_size=2 + 1,
-                    padding=2 // 2,
-                    stride=2,
-                    padding_mode="zeros",
-                    groups=groups[stage],
+                ReduceSize(
+                    dims[stage],
                 )
             )
+
             self.parallels.append(
                 ParallelTransformers(
-                    dim=dims[stage + 2],
-                    depth=2,
+                    dim=dims[stage + 1],
+                    depth=self.depth[stage + 1],
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
-                    drop_rate=drop_rate,
-                    size=14 // (stage + 1),
+                    drop_rate=dpr[self.depth[0] + stage],
+                    size=initial_size // ((stage + 1) * 2),
                 )
             )
 
-        self.parallel_2 = ParallelTransformers(
-            dim=384,
-            depth=2,
-            num_heads=num_heads,
-            mlp_ratio=mlp_ratio,
-            drop_rate=drop_rate,
-            size=14 // 2,
+        self.norm = nn.LayerNorm(dims[-1], eps=1e-6)
+        self.gap = nn.Sequential(
+            # REARANGE
+            Rearrange("batch (height width) channels  -> batch  channels height width", height=aux_size, width=aux_size),
+            nn.AdaptiveAvgPool2d((1, 1)),
         )
-
-        self.norm = nn.LayerNorm(384, eps=1e-6)
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
 
         # Classifier head
         if num_classes > 0:
-            self.head = nn.Linear(384, num_classes)
+            self.head = nn.Linear(dims[-1], num_classes, bias=head_bias)
 
     def forward(self, x):
-        print(x.shape, "hola")
-        x_1 = self.patch_embedding(x)
-        print(x_1.shape, "xddd")
-        N, C, H = x_1.shape
-        x_0 = x
-        x = x_1
+        x = self.patch_embedding(x)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
 
         for stage in range(len(self.depth) - 1):
-            N, C, H = x.shape
-            x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
             x = self.downsamples[stage](x)
-            x = rearrange(x, "b c h w -> b (h w) c")
             x = self.parallels[stage](x)
 
         x = self.norm(x)
-        N, C, H = x.shape
-        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
-        print(x.shape, "hola")
         x = self.gap(x)
-        print(x.shape, "hola")
         x = torch.flatten(x, 1)
-        print(x.shape, "hola")
         x = self.head(x)
-        print(x.shape, "hola")
 
         return x

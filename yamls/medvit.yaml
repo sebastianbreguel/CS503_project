@@ -4,7 +4,7 @@ model:
     depths: [3, 4, 10, 3]
     num_heads: 32
     drop_rate: 0
-    num_classes: 1000
+    num_classes: 101
     stem_chs: [64, 32, 64]
 
 optimizer:
@@ -20,4 +20,4 @@ training:
 dataset:
   name: "FOOD101"
   img_size: (3, 224, 224)
-  num_classes: 1000
+  num_classes: 101

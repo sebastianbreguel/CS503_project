@@ -96,7 +96,6 @@ class ConvAttention(nn.Module):
         self.K = nn.Linear(dim, dim, bias)
         self.V = nn.Linear(dim, dim, bias)
         self.size = size
-        print("size", size)
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)

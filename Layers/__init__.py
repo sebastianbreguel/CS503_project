@@ -23,13 +23,15 @@ from .helper import (
 from .patch_embeddings import (
     BasicStem,
     ConvEmbedding,
+    Downsample,
     GraphPatchEmbed,
     NaivePatchEmbed,
     EarlyConv,
     MedPatchEmbed,
+    ReduceSize,
 )
 from .positional_encodings import RelativePos, SineCosinePosEmbedding
-from .Transformers import (
+from .transformer import (
     # Attention layers
     Attention,
     AxialAttention,

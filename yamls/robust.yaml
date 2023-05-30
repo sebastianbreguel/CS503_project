@@ -33,6 +33,6 @@ training:
   loss: "cross entropy"
 
 dataset:
-  name: "CIFAR10"
+  name: "FOOD101"
   img_size: (3, 224, 224)
   num_classes: 10

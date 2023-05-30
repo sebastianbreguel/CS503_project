@@ -35,7 +35,6 @@ class ParallelTransformers(nn.Module):
         super(ParallelTransformers, self).__init__()
         self.depth = depth
         self.blocks = []
-        print(size, "tama;o ")
 
         for _ in range(depth):
             self.blocks.append(
