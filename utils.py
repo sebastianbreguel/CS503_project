@@ -118,7 +118,6 @@ def train_model(
             epoch_loss_train += loss.item()
             pred = logits.argmax(dim=1, keepdim=True)
             correct += pred.eq(targets.view_as(pred)).sum().item()
-            break
 
         train_accuracy = correct / len(loader_train.dataset)
         epoch_loss_train /= len(loader_train)

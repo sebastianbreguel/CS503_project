@@ -38,9 +38,9 @@ def main(config):
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
 
-    input_size = ast.literal_eval(config["dataset"]["img_size"])
+    # input_size = ast.literal_eval(config["dataset"]["img_size"])
     # # pri   nt(model)
-    summary(model, input_size)
+    # summary(model, input_size)
     model = model.to(device)
     model_name = config["model"]["name"]
 

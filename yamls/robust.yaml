@@ -8,9 +8,9 @@ model:
     depth: [10, 2]
     heads: [6, 12]
     mlp_ratio: 4
-    attn_drop_rate: 0.1
-    drop_rate: 0.1
-    drop_path_rate: 0.1
+    attn_drop_rate: 0
+    drop_rate: 0
+    drop_path_rate: 0
 
 optimizer:
   name: "AdamW"

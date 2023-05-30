@@ -10,7 +10,7 @@ from skimage.filters import gaussian
 import cv2
 
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 
 CORRUPTIONS = [
     "identity",
