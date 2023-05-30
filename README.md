@@ -34,32 +34,8 @@ here is the list of datasets with the subset of variations we are going to use:
   - CIFAR10-C
 - CIFAR100: 60K images, **100** classes
   - CIFAR100-C
-- IMAGENET
-  - [ImageNet](http://www.image-net.org/): 1.2 million images, 1000 classes
-  - [ImageNet-21K](https://patrykchrabaszcz.github.io/Imagenet32/): 14 million images, 21K classes
-  - ImageNet-C: Common corruptions
-  - ImageNet-P: Common perturbations
-  - ImageNet-R: Sematinc Shifts
-  - ImageNet-O: Out of domain distributions
-  - ImageNet-A: Adversarial examples
-  - ImageNet-9: Background dependence
-  - ImageNet-Sketch: pen
-
-## TODO
-
-- [ ] Agregate ImageNet dataset
-- [ ] Define metrics and datasets corrupted
-- [ ] Add functions to load and save models
-
-- [ ] Define final models and architectures
-- [ ] Generate general yamls models and test
-- [ ] Make pipeline for running models
-
-Review(posible implementation):
-
-Review for implementation and future ideas:
-
-- [Learning a Fourier Transform for Linear Relative Positional Encodings in Transformers](https://paperswithcode.com/paper/learning-a-fourier-transform-for-linear)
+- FOOD101: 101K images, 101 classes
+  - FOOD101-C: we to corrupt the images
 
 ### To run the code
 
