@@ -357,21 +357,20 @@ class GraphPatchEmbed(nn.Module):
         x = self.conv(x)
         B, C, H, W = x.shape
         x = x.flatten(2).transpose(-1, -2)  # flatten height and width dimensions
-        N = x.shape[1]
 
+        N = x.shape[1]
         x = x.contiguous().view(B * N, C)  # flatten batch and patch dimensions
 
-        edge_index = self.get_edge_index(H, W)  # get edge index for GCN
+        edge_index = self.get_edge_index(H, W, B)  # get edge index for GCN
         x = self.gcn(x, edge_index)  # forward through GCN
-        x = x.view(B, N, C)  # restore batch dimension
+        x = x.view(B, -1, C)  # restore batch dimension
 
         if self.norm_layer is not None:
             x = self.norm_layer(x)
 
         return x
 
-    @staticmethod
-    def get_edge_index(height, width):
+    def get_edge_index(self, height, width, batch_size):
         """
         Creates an adjacency matrix for an image based on its patches.
         For now, it considers the 4 nearest neighbors (up, down, left, right)
@@ -384,30 +383,31 @@ class GraphPatchEmbed(nn.Module):
         """
 
         nodes = height * width
-
+        # total_nodes = nodes * batch_size
         edge_index = []
-        for i in range(nodes):
-            row = i // width
-            col = i % width
 
-            if row - 1 >= 0:  # up
-                edge_index.append((i, i - width))
-            if row + 1 < height:  # down
-                edge_index.append((i, i + width))
-            if col - 1 >= 0:  # left
-                edge_index.append((i, i - 1))
-            if col + 1 < width:  # right
-                edge_index.append((i, i + 1))
-
-        # 4-diagonal neighbors
-        if row - 1 >= 0 and col - 1 >= 0:  # upper left
-            edge_index.append((i, i - width - 1))
-        if row - 1 >= 0 and col + 1 < width:  # upper right
-            edge_index.append((i, i - width + 1))
-        if row + 1 < height and col - 1 >= 0:  # lower left
-            edge_index.append((i, i + width - 1))
-        if row + 1 < height and col + 1 < width:  # lower right
-            edge_index.append((i, i + width + 1))
+        for b in range(batch_size):
+            offset = b * nodes
+            for i in range(nodes):
+                row = i // width
+                col = i % width
+                ioffset = i + offset
+                if row - 1 >= 0:  # up
+                    edge_index.append((ioffset, ioffset - width))
+                if row + 1 < height:  # down
+                    edge_index.append((ioffset, ioffset + width))
+                if col - 1 >= 0:  # left
+                    edge_index.append((ioffset, ioffset - 1))
+                if col + 1 < width:  # right
+                    edge_index.append((ioffset, ioffset + 1))
+                if row - 1 >= 0 and col - 1 >= 0:  # upper left
+                    edge_index.append((ioffset, ioffset - width - 1))
+                if row - 1 >= 0 and col + 1 < width:  # upper right
+                    edge_index.append((ioffset, ioffset - width + 1))
+                if row + 1 < height and col - 1 >= 0:  # lower left
+                    edge_index.append((ioffset, ioffset + width - 1))
+                if row + 1 < height and col + 1 < width:  # lower right
+                    edge_index.append((ioffset, ioffset + width + 1))
 
         edge_index = torch.tensor(edge_index, dtype=torch.long).t()
         return edge_index

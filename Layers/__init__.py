@@ -29,7 +29,7 @@ from .patch_embeddings import (
     MedPatchEmbed,
 )
 from .positional_encodings import RelativePos, SineCosinePosEmbedding
-from .Transformers import (
+from .transformers import (
     # Attention layers
     ALiBiAttention,
     Attention,
