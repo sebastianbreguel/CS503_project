@@ -15,20 +15,7 @@ OPTIMIZERS = ["AdamW", "Adam", "SGD"]
 
 def get_model(config) -> torch.nn.Module:
     if config["model"]["name"] == "ViT":
-        configuration = ViTConfig(
-            hidden_size=192,
-            num_hidden_layers=14,
-            num_attention_heads=3,
-            intermediate_size=768,
-            hidden_dropout_prob=0,
-            attention_probs_dropout_prob=0,
-            num_labels=101,
-            is_encoder_decoder=False,
-            use_cache=True,
-            image_size=224,
-            patch_size=16,
-            num_channels=3,
-        )
+        configuration = ViTConfig(**config["model"]["params"])
         model = ViTForImageClassification(configuration)
 
     elif config["model"]["name"] == "MedViT":

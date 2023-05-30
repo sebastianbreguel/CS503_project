@@ -1,22 +1,18 @@
 model:
-  name: "robust"
+  name: "testion"
   params:
-    image_size: 224
-    patch_size: 16
-    stride: 16
-    base_dims: [64]
-    depth: [12]
-    heads: [6]
-    mlp_ratio: 4
-    attn_drop_rate: 0.1
+    depth: [4, 4]
+    num_heads: 4
+    mlp_ratio: 4.0
     drop_rate: 0.1
-    drop_path_rate: 0.1
+    num_classes: 101
+    head_bias: False
 
 optimizer:
   name: "AdamW"
   params:
     lr: 0.0005
-    weight_decay: 0.001
+    weight_decay: 0.01
 
 training:
   num_epochs: 5
