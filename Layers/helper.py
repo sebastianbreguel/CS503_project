@@ -104,9 +104,7 @@ class QuickGELU(nn.Module):
 ###############################################################
 
 
-def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
+def drop_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
 
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
@@ -120,9 +118,7 @@ def drop_path(
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
-    shape = (x.shape[0],) + (1,) * (
-        x.ndim - 1
-    )  # work with diff dim tensors, not just 2D ConvNets
+    shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
     random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
     if keep_prob > 0.0 and scale_by_keep:
         random_tensor.div_(keep_prob)
@@ -189,9 +185,7 @@ class PatchDropout(torch.nn.Module):
         if self.sampling == "uniform":
             return self.uniform_mask(x)
         else:
-            return NotImplementedError(
-                f"PatchDropout does ot support {self.sampling} sampling"
-            )
+            return NotImplementedError(f"PatchDropout does ot support {self.sampling} sampling")
 
     def uniform_mask(self, x):
         """
@@ -311,71 +305,6 @@ class SELayer(nn.Module):
         return x * y
 
 
-# TODO: check this part
-def moex(x, swap_index, norm_type, epsilon=1e-5, positive_only=False):
-    """
-    Moment exchanger patch https://arxiv.org/abs/2302.09462
-    -source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
-    """
-    dtype = x.dtype
-    x = x.float()
-
-    B, C, L = x.shape
-    if norm_type == "bn":
-        norm_dims = [0, 2, 3]
-    elif norm_type == "in":
-        norm_dims = [2, 3]
-    elif norm_type == "ln":
-        norm_dims = [1, 2, 3]
-    elif norm_type == "pono":
-        norm_dims = [1]
-    elif norm_type.startswith("gn"):
-        if norm_type.startswith("gn-d"):
-            # gn-d4 means GN where each group has 4 dims
-            G_dim = int(norm_type[4:])
-            G = C // G_dim
-        else:
-            # gn4 means GN with 4 groups
-            G = int(norm_type[2:])
-            G_dim = C // G
-        x = x.view(B, G, G_dim, H, W)
-        norm_dims = [2, 3, 4]
-    elif norm_type.startswith("gpono"):
-        if norm_type.startswith("gpono-d"):
-            # gpono-d4 means GPONO where each group has 4 dims
-            G_dim = int(norm_type[len("gpono-d") :])
-            G = C // G_dim
-        else:
-            # gpono4 means GPONO with 4 groups
-            G = int(norm_type[len("gpono") :])
-            G_dim = C // G
-        x = x.view(B, G, G_dim, H, W)
-        norm_dims = [2]
-    else:
-        raise NotImplementedError(f"norm_type={norm_type}")
-
-    if positive_only:
-        x_pos = F.relu(x)
-        s1 = x_pos.sum(dim=norm_dims, keepdim=True)
-        s2 = x_pos.pow(2).sum(dim=norm_dims, keepdim=True)
-        count = x_pos.gt(0).sum(dim=norm_dims, keepdim=True)
-        count[count == 0] = 1  # deal with 0/0
-        mean = s1 / count
-        var = s2 / count - mean.pow(2)
-        std = var.add(epsilon).sqrt()
-    else:
-        mean = x.mean(dim=norm_dims, keepdim=True)
-        std = x.var(dim=norm_dims, keepdim=True).add(epsilon).sqrt()
-    swap_mean = mean[swap_index]
-    swap_std = std[swap_index]
-    # output = (x - mean) / std * swap_std + swap_mean
-    # equvalent but for efficient
-    scale = swap_std / std
-    shift = swap_mean - mean * scale
-    output = x * scale + shift
-    return output.view(B, C, L).to(dtype)
-
-
 def _trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
     # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
@@ -385,8 +314,7 @@ def _trunc_normal_(tensor, mean, std, a, b):
 
     if (mean < a - 2 * std) or (mean > b + 2 * std):
         warnings.warn(
-            "mean is more than 2 std from [a, b] in nn.init.trunc_normal_. "
-            "The distribution of values may be incorrect.",
+            "mean is more than 2 std from [a, b] in nn.init.trunc_normal_. " "The distribution of values may be incorrect.",
             stacklevel=2,
         )
 
@@ -414,7 +342,6 @@ def _trunc_normal_(tensor, mean, std, a, b):
 
 
 def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
-    # type: (Tensor, float, float, float, float) -> Tensor
     r"""Fills the input Tensor with values drawn from a truncated
     normal distribution. The values are effectively drawn from the
     normal distribution :math:`\mathcal{N}(\text{mean}, \text{std}^2)`
