@@ -1,0 +1,28 @@
+model:
+  name: "robust"
+  params:
+    image_size: 224
+    patch_size: 16
+    stride: 16
+    base_dims: [32, 32]
+    depth: [8, 2]
+    heads: [6, 12]
+    mlp_ratio: 4
+    attn_drop_rate: 0.1
+    drop_rate: 0.1
+    drop_path_rate: 0.1
+
+optimizer:
+  name: "AdamW"
+  params:
+    lr: 0.0005
+    weight_decay: 0.001
+
+training:
+  num_epochs: 5
+  loss: "cross entropy"
+
+dataset:
+  name: "FOOD101"
+  img_size: (3, 224, 224)
+  num_classes: 101

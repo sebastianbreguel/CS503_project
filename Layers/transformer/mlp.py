@@ -27,6 +27,16 @@ class Mlp(nn.Module):
             nn.Dropout(dropout),
         )
 
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+            elif isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out")
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
+
     def forward(self, x) -> torch.Tensor:
         return self.mlp(x)  # returns output of the same dimension as the input
 
@@ -63,6 +73,15 @@ class RobustMlp(nn.Module):
         self.fc2 = nn.Conv2d(self.hidden_features, dim, 1)
         self.bn3 = nn.BatchNorm2d(dim)
         self.drop = nn.Dropout(dropout)
+        self.init_weights()
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+            elif isinstance(m, nn.LayerNorm):
+                nn.init.constant_(m.bias, 0)
+                nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x) -> torch.Tensor:
         B, N, C = x.shape

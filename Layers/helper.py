@@ -3,6 +3,8 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 from einops.layers.torch import Rearrange
+import math
+import warnings
 
 ######
 # Normalization methods
@@ -102,9 +104,7 @@ class QuickGELU(nn.Module):
 ###############################################################
 
 
-def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
+def drop_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
 
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
@@ -118,9 +118,7 @@ def drop_path(
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
-    shape = (x.shape[0],) + (1,) * (
-        x.ndim - 1
-    )  # work with diff dim tensors, not just 2D ConvNets
+    shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
     random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
     if keep_prob > 0.0 and scale_by_keep:
         random_tensor.div_(keep_prob)
@@ -187,9 +185,7 @@ class PatchDropout(torch.nn.Module):
         if self.sampling == "uniform":
             return self.uniform_mask(x)
         else:
-            return NotImplementedError(
-                f"PatchDropout does ot support {self.sampling} sampling"
-            )
+            return NotImplementedError(f"PatchDropout does ot support {self.sampling} sampling")
 
     def uniform_mask(self, x):
         """
@@ -207,7 +203,7 @@ class PatchDropout(torch.nn.Module):
         return patch_mask
 
 
-def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, method):
+def _build_projection(dim_in, dim_out, kernel_size, padding, stride, method):
     if method == "dw_bn":
         proj = nn.Sequential(
             OrderedDict(
@@ -216,7 +212,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
                         "conv",
                         nn.Conv2d(
                             dim_in,
-                            dim_in,
+                            dim_out,
                             kernel_size=kernel_size,
                             padding=padding,
                             stride=stride,
@@ -224,7 +220,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
                             groups=dim_in,
                         ),
                     ),
-                    ("bn", nn.BatchNorm2d(dim_in)),
+                    ("bn", nn.BatchNorm2d(dim_out)),
                     ("rearrage", Rearrange("b c h w -> b (h w) c")),
                 ]
             )
@@ -260,6 +256,7 @@ def _build_projection(self, dim_in, dim_out, kernel_size, padding, stride, metho
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
         min_value = divisor
+
     new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
     # Make sure that round down does not go down by more than 10%.
     if new_v < 0.9 * v:
@@ -308,66 +305,63 @@ class SELayer(nn.Module):
         return x * y
 
 
-# TODO: check this part
-def moex(x, swap_index, norm_type, epsilon=1e-5, positive_only=False):
-    """
-    Moment exchanger patch https://arxiv.org/abs/2302.09462
-    -source: https://github.com/Omid-Nejati/MedViT/blob/main/MedViT.py
-    """
-    dtype = x.dtype
-    x = x.float()
+def _trunc_normal_(tensor, mean, std, a, b):
+    # Cut & paste from PyTorch official master until it's in a few official releases - RW
+    # Method based on https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
+    def norm_cdf(x):
+        # Computes standard normal cumulative distribution function
+        return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
 
-    B, C, L = x.shape
-    if norm_type == "bn":
-        norm_dims = [0, 2, 3]
-    elif norm_type == "in":
-        norm_dims = [2, 3]
-    elif norm_type == "ln":
-        norm_dims = [1, 2, 3]
-    elif norm_type == "pono":
-        norm_dims = [1]
-    elif norm_type.startswith("gn"):
-        if norm_type.startswith("gn-d"):
-            # gn-d4 means GN where each group has 4 dims
-            G_dim = int(norm_type[4:])
-            G = C // G_dim
-        else:
-            # gn4 means GN with 4 groups
-            G = int(norm_type[2:])
-            G_dim = C // G
-        x = x.view(B, G, G_dim, H, W)
-        norm_dims = [2, 3, 4]
-    elif norm_type.startswith("gpono"):
-        if norm_type.startswith("gpono-d"):
-            # gpono-d4 means GPONO where each group has 4 dims
-            G_dim = int(norm_type[len("gpono-d") :])
-            G = C // G_dim
-        else:
-            # gpono4 means GPONO with 4 groups
-            G = int(norm_type[len("gpono") :])
-            G_dim = C // G
-        x = x.view(B, G, G_dim, H, W)
-        norm_dims = [2]
-    else:
-        raise NotImplementedError(f"norm_type={norm_type}")
+    if (mean < a - 2 * std) or (mean > b + 2 * std):
+        warnings.warn(
+            "mean is more than 2 std from [a, b] in nn.init.trunc_normal_. " "The distribution of values may be incorrect.",
+            stacklevel=2,
+        )
 
-    if positive_only:
-        x_pos = F.relu(x)
-        s1 = x_pos.sum(dim=norm_dims, keepdim=True)
-        s2 = x_pos.pow(2).sum(dim=norm_dims, keepdim=True)
-        count = x_pos.gt(0).sum(dim=norm_dims, keepdim=True)
-        count[count == 0] = 1  # deal with 0/0
-        mean = s1 / count
-        var = s2 / count - mean.pow(2)
-        std = var.add(epsilon).sqrt()
-    else:
-        mean = x.mean(dim=norm_dims, keepdim=True)
-        std = x.var(dim=norm_dims, keepdim=True).add(epsilon).sqrt()
-    swap_mean = mean[swap_index]
-    swap_std = std[swap_index]
-    # output = (x - mean) / std * swap_std + swap_mean
-    # equvalent but for efficient
-    scale = swap_std / std
-    shift = swap_mean - mean * scale
-    output = x * scale + shift
-    return output.view(B, C, L).to(dtype)
+    # Values are generated by using a truncated uniform distribution and
+    # then using the inverse CDF for the normal distribution.
+    # Get upper and lower cdf values
+    l = norm_cdf((a - mean) / std)
+    u = norm_cdf((b - mean) / std)
+
+    # Uniformly fill tensor with values from [l, u], then translate to
+    # [2l-1, 2u-1].
+    tensor.uniform_(2 * l - 1, 2 * u - 1)
+
+    # Use inverse cdf transform for normal distribution to get truncated
+    # standard normal
+    tensor.erfinv_()
+
+    # Transform to proper mean, std
+    tensor.mul_(std * math.sqrt(2.0))
+    tensor.add_(mean)
+
+    # Clamp to ensure it's in the proper range
+    tensor.clamp_(min=a, max=b)
+    return tensor
+
+
+def trunc_normal_(tensor, mean=0.0, std=1.0, a=-2.0, b=2.0):
+    r"""Fills the input Tensor with values drawn from a truncated
+    normal distribution. The values are effectively drawn from the
+    normal distribution :math:`\mathcal{N}(\text{mean}, \text{std}^2)`
+    with values outside :math:`[a, b]` redrawn until they are within
+    the bounds. The method used for generating the random values works
+    best when :math:`a \leq \text{mean} \leq b`.
+
+    NOTE: this impl is similar to the PyTorch trunc_normal_, the bounds [a, b] are
+    applied while sampling the normal with mean/std applied, therefore a, b args
+    should be adjusted to match the range of mean, std args.
+
+    Args:
+        tensor: an n-dimensional `torch.Tensor`
+        mean: the mean of the normal distribution
+        std: the standard deviation of the normal distribution
+        a: the minimum cutoff value
+        b: the maximum cutoff value
+    Examples:
+        >>> w = torch.empty(3, 5)
+        >>> nn.init.trunc_normal_(w)
+    """
+    with torch.no_grad():
+        return _trunc_normal_(tensor, mean, std, a, b)

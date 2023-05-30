@@ -1,7 +1,15 @@
 import torch
 import torch.nn as nn
 
-from .blocks import Block, CustomBlock, ECBlock, LTBlock, Parallel_blocks, RobustBlock
+from .blocks import (
+    Block,
+    CustomBlock,
+    ECBlock,
+    LTBlock,
+    Parallel_blocks,
+    RobustBlock,
+    Model1ParallelBlock,
+)
 
 
 class Transformer(nn.Module):
@@ -36,29 +44,41 @@ class ParallelTransformers(nn.Module):
     """
 
     def __init__(
-        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
+        self,
+        dim,
+        depth,
+        num_heads=8,
+        mlp_ratio=4.0,
+        drop_rate=[0.0],
+        masked_block=None,
+        size=14,
+        final=False,
     ) -> None:
         super(ParallelTransformers, self).__init__()
-        self.parallel_blocks = 3
-        self.depth = depth // self.parallel_blocks
-        self.unique = depth % self.parallel_blocks
-        self.blocks = nn.ModuleList()
+        self.depth = depth
+        self.blocks = []
 
         for _ in range(depth):
+            drop = drop_rate[_]
             self.blocks.append(
-                Parallel_blocks(
+                Model1ParallelBlock(
                     dim=dim,
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
-                    drop=drop_rate,
-                    num_parallel=self.parallel_blocks,
+                    drop=drop,
+                    size=size,
                 )
             )
-
-        for _ in range(self.unique):
+        if final:
             self.blocks.append(
-                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+                Block(
+                    dim=dim,
+                    num_heads=num_heads,
+                    mlp_ratio=mlp_ratio,
+                    drop=drop_rate[-1],
+                )
             )
+        self.blocks = nn.Sequential(*self.blocks)
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -106,6 +126,8 @@ class RVTransformer(nn.Module):
     """
     Transformers Blocks for the RVT model https://arxiv.org/pdf/2105.07926.pdf
     - source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main
+
+    robust block with the same dimensions
     """
 
     def __init__(
@@ -117,6 +139,7 @@ class RVTransformer(nn.Module):
         drop_rate=0.0,
         masked_block=None,
         block=RobustBlock,
+        size=14,
     ) -> None:
         super(RVTransformer, self).__init__()
         self.depth = depth
@@ -125,7 +148,7 @@ class RVTransformer(nn.Module):
 
         for _ in range(depth):
             self.blocks.append(
-                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
             )
             self.pooling.append(
                 nn.Conv2d(
@@ -133,16 +156,19 @@ class RVTransformer(nn.Module):
                     dim,
                     kernel_size=2 + 1,
                     padding=2 // 2,
-                    stride=2,
+                    stride=1,
                     padding_mode="zeros",
                     groups=dim,
                 )
             )
 
     def forward(self, x) -> torch.Tensor:
+        N, C, H = x.shape
         for state in range(self.depth):
             x = self.blocks[state](x)
+            x = x.view(N, int(C**0.5), int(C**0.5), H).transpose(-3, -1)
             x = self.pooling[state](x)
+            x = x.transpose(-3, -1).contiguous().view(N, C, H)
 
         return x
 
