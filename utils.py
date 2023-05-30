@@ -174,12 +174,28 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
     test_loss = 0
     correct = 0
 
+    test_corrupted_loss = 0
+    correct_corrupted = 0
+
     model.eval()
 
     # Fix the seed for reproducibility
     random.seed(42)
 
     # Wrap loader with tqdm to create a progress bar
+    for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
+        inputs, targets = imgs.to(device), cls_idxs.to(device)
+
+        with torch.no_grad():
+            logits = model(inputs)
+            if model_name == "ViT":
+                logits = logits.logits
+        loss = loss_function(logits, targets)
+        test_loss += loss.item()
+
+        pred = logits.argmax(dim=1, keepdim=True)
+        correct += pred.eq(targets.view_as(pred)).sum().item()
+
     for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
         inputs, targets = imgs.to(device), cls_idxs.to(device)
 
@@ -193,14 +209,19 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
             if model_name == "ViT":
                 logits = logits.logits
         loss = loss_function(logits, targets)
-        test_loss += loss.item()
+        test_corrupted_loss += loss.item()
 
         pred = logits.argmax(dim=1, keepdim=True)
-        correct += pred.eq(targets.view_as(pred)).sum().item()
+        correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
 
     test_loss /= len(loader_test)
     accuracy = correct / len(loader_test.dataset)
 
+    test_corrupted_loss /= len(loader_test)
+    accuracy_corrupted = correct_corrupted / len(loader_test.dataset)
     print(f"Test loss: {test_loss:.3f}")
     print(f"Test top-1 accuracy: {accuracy*100}%")
-    return test_loss, accuracy
+
+    print(f"Test corrupted loss: {test_corrupted_loss:.3f}")
+    print(f"Test corrupted top-1 accuracy: {accuracy_corrupted*100}%")
+    return test_loss, accuracy, test_corrupted_loss, accuracy_corrupted
