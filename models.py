@@ -40,7 +40,7 @@ class MedViT(nn.Module):
         stem_chs,
         depths,
         drop_rate,
-        num_classes=100,
+        num_classes=101,
         strides=[1, 2, 2, 2],
         sr_ratios=[8, 4, 2, 1],
         num_heads=32,
@@ -109,7 +109,7 @@ class MedViT(nn.Module):
         self.proj_head = nn.Sequential(
             nn.Linear(input_channel, num_classes),
         )
-
+        print(num_classes)
         self.stage_out_idx = [sum(depths[: idx + 1]) - 1 for idx in range(len(depths))]
         print("initialize_weights...")
         self._initialize_weights()
