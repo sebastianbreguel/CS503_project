@@ -4,6 +4,7 @@ notebooks_from_class/
 ignored/
 
 
+# weights/ViT/*
 
 .DS_Store
 medivit.py
