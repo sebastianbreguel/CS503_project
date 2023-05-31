@@ -53,7 +53,7 @@ class MedViT(nn.Module):
         self.stage_out_channels = [
             [96] * (depths[0]),
             [128] * (depths[1] - 1) + [192],
-            [256, 384] * (depths[2] // 5),
+            [256, 384] * (depths[2] // 2),
             [384] * (depths[3] - 1) + [512],
         ]
 
@@ -61,10 +61,9 @@ class MedViT(nn.Module):
         self.stage_block_types = [
             [ECBlock] * depths[0],
             [ECBlock] * (depths[1] - 1) + [LTBlock],
-            [ECBlock, ECBlock, ECBlock, ECBlock, LTBlock] * (depths[2] // 5),
+            [ECBlock, LTBlock] * (depths[2] // 2),
             [ECBlock] * (depths[3] - 1) + [LTBlock],
         ]
-
         input_channel = 64
         features = []
         idx = 0
