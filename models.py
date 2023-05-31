@@ -216,9 +216,8 @@ class Testion(nn.Module):
             x = self.downsamples[stage](x)
             x = self.parallels[stage](x)
 
-        x = self.norm(x)
         x = self.gap(x).squeeze()
-        # x = torch.flatten(x, 1)
+        x = self.norm(x)
         x = self.head(x)
 
         return x
@@ -300,7 +299,7 @@ class MedViT_S(nn.Module):
 
         self.features = nn.Sequential(*self.features)
 
-        self.norm = nn.BatchNorm2d(input_channel, eps=1e-6)
+        self.norm = nn.LayerNorm(input_channel, eps=1e-6)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.proj_head = nn.Sequential(
             nn.Linear(input_channel, num_classes),

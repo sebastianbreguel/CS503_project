@@ -65,16 +65,6 @@ class ParallelTransformers(nn.Module):
                     size=size,
                 )
             )
-        if final:
-            self.blocks.append(
-                Block(
-                    dim=dim,
-                    num_heads=num_heads,
-                    mlp_ratio=mlp_ratio,
-                    drop=drop_rate[-1],
-                )
-            )
-        self.blocks = nn.Sequential(*self.blocks)
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -141,7 +131,7 @@ class RVTransformer(nn.Module):
         self.pooling = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate[_], size=size))
+            self.blocks.append(Model1ParallelBlock(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate[_], size=size))
 
     def forward(self, x) -> torch.Tensor:
         N, C, H = x.shape

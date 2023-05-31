@@ -32,8 +32,8 @@ def main(config):
     model = get_model(config)
     # load model
     model_name = config["model"]["name"]
-    if model_name == "ViT":
-        model.load_state_dict(torch.load("weights/ViT/best_model_Wed_May_31_12_35_08_2023.pth"))
+    if model_name == "testion":
+        model.load_state_dict(torch.load("weights/testion/best_model_Wed_May_31_20_13_12_2023.pth"))
 
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())

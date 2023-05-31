@@ -409,4 +409,5 @@ class PoolingTransformer(nn.Module):
     def forward(self, x):
         cls_features = self.forward_features(x)
         output = self.head(cls_features)
+        print(output.shape, output)
         return output
