@@ -35,13 +35,6 @@ class Attention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-        self.apply(self._init_weights)
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """
@@ -109,12 +102,6 @@ class ConvAttention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear, nn.Conv2d):
-            trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward_conv(self, x):
         x = rearrange(x, "b (h w) c -> b c h w", h=self.size, w=self.size)
@@ -526,12 +513,6 @@ class RobustAttention(nn.Module):
 
         # Projection
         self.proj = nn.Sequential(nn.Linear(dim, dim), nn.Dropout(dropout))
-
-    def _init_weights(self, m):
-        if isinstance(m, nn.Linear):
-            trunc_normal_(m.weight, std=0.02)
-            if isinstance(m, nn.Linear) and m.bias is not None:
-                nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.tensor, mask=None) -> torch.tensor:
         """

@@ -383,17 +383,6 @@ class Model1ParallelBlock(nn.Module):
         self.norm2 = nn.LayerNorm(dim)
 
         self.drop_path = DropPath(drop) if drop > 0.0 else nn.Identity()
-        self.init_weights()
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                if isinstance(m, nn.Linear) and m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.LayerNorm):
-                nn.init.constant_(m.bias, 0)
-                nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x, mask=None):
         x = x + self.drop_path(self.gamma_1 * self.attns1(self.norm1(x))) + self.drop_path(self.gamma_2 * self.attns2(self.norm1(x)))
