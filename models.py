@@ -136,15 +136,16 @@ class Testion(nn.Module):
         super(Testion, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
-        self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
+        self.patch_embedding = ConvEmbedding(3, embed_dim=32, out_channels=96, patch_size=2)
+        # self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=96, strides=[2, 2, 2, 2])
 
         initial_size = img_size[0] // 16
 
         self.blocks = nn.ModuleList()
         self.depth = depth
         dpr = [x.item() for x in torch.linspace(0, drop_rate, sum(depth))]  # stochastic depth decay rule
-        dims = [128, 256]
-        groups = [64]
+        dims = [96, 192, 384]
+        groups = [48, 96]
         self.downsamples = nn.ModuleList()
         self.parallels = nn.ModuleList()
         final_attention = [True, True]
@@ -160,13 +161,17 @@ class Testion(nn.Module):
                     size=initial_size,
                 )
             )
+        aux_size = initial_size
 
         for stage in range(len(self.depth) - 1):
-            aux_size = initial_size // ((stage + 1) * 2)
+            aux_size = (aux_size + 1) // (2)
+            print(aux_size)
             drop = dpr[self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]]
             self.downsamples.append(
-                ReduceSize(
+                Downsample(
                     dims[stage],
+                    dims[stage + 1],
+                    groups[stage],
                 )
             )
 
@@ -218,10 +223,14 @@ class Testion(nn.Module):
         x = self.patch_embedding(x)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
+        print(x.shape)
 
         for stage in range(len(self.depth) - 1):
+            print(x.shape)
             x = self.downsamples[stage](x)
+            print(x.shape, "y")
             x = self.parallels[stage](x)
+            print(x.shape)
 
         x = self.norm(x)
         x = self.gap(x)
