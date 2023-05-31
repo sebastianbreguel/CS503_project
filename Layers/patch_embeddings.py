@@ -151,6 +151,7 @@ class EarlyConv(nn.Module):
 
         self.conv4 = nn.Conv2d(stem_chs[2], out_ch, kernel_size=3, stride=strides[3], padding=1, bias=False)
         self.norm4 = nn.BatchNorm2d(out_ch)
+        self.drop = nn.Dropout(0.1)
 
         self.act = nn.ReLU(inplace=True)
         self.with_pos = with_pos
@@ -172,6 +173,7 @@ class EarlyConv(nn.Module):
         x = self.norm4(x)
 
         x = rearrange(x, "b c h w -> b (h w) c")
+        x = self.drop(x)
         if self.with_pos:
             x = x * self.sigmoid(self.pa_conv(x))
         return x
