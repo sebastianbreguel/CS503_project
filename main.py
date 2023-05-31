@@ -38,11 +38,11 @@ def main(config):
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
 
-    input_size = ast.literal_eval(config["dataset"]["img_size"])
-    # # pri   nt(model)
-    summary(model, input_size)
-    # model = model.to(device)
-    # model_name = config["model"]["name"]
+    # input_size = ast.literal_eval(config["dataset"]["img_size"])
+    # # # pri   nt(model)
+    # summary(model, input_size)
+    model = model.to(device)
+    model_name = config["model"]["name"]
 
     # # # # TODO: put this logic in an Algorithm class
     # num_epochs = config["training"]["num_epochs"]
@@ -58,24 +58,25 @@ def main(config):
     #     model_name=model_name,
     # )
 
-    # localtime = time.asctime(time.localtime(time.time()))
-    # localtime = localtime.replace(" ", "_")
-    # localtime = localtime.replace(":", "_")
+    localtime = time.asctime(time.localtime(time.time()))
+    localtime = localtime.replace(" ", "_")
+    localtime = localtime.replace(":", "_")
     # test_loss, test_accuracy, test_corrupted_loss, test_corrupted_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
-    # with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
-    #     json.dump(
-    #         {
-    #             "train_losses": train_losses,
-    #             "val_losses": val_losses,
-    #             "train_accuracy": train_accuracy,
-    #             "val_accuracy": val_accuracy,
-    #             "test_loss": test_loss,
-    #             "test_accuracy": test_accuracy,
-    #             "test_corrupted_loss": test_corrupted_loss,
-    #             "test_corrupted_accuracy": test_corrupted_accuracy,
-    #         },
-    #         outfile,
-    #     )
+    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
+        json.dump(
+            {
+                "train_losses": train_losses,
+                "val_losses": val_losses,
+                "train_accuracy": train_accuracy,
+                "val_accuracy": val_accuracy,
+                "test_loss": test_loss,
+                "test_accuracy": test_accuracy,
+                # "test_corrupted_loss": test_corrupted_loss,
+                # "test_corrupted_accuracy": test_corrupted_accuracy,
+            },
+            outfile,
+        )
 
 
 if __name__ == "__main__":

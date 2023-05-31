@@ -40,7 +40,7 @@ class MedViT(nn.Module):
         stem_chs,
         depths,
         drop_rate,
-        num_classes=100,
+        num_classes=101,
         strides=[1, 2, 2, 2],
         sr_ratios=[8, 4, 2, 1],
         num_heads=32,
@@ -53,7 +53,7 @@ class MedViT(nn.Module):
         self.stage_out_channels = [
             [96] * (depths[0]),
             [128] * (depths[1] - 1) + [192],
-            [256, 384] * (depths[2] // 2),
+            [256, 384, 384] * (depths[2] // 3),
             [384] * (depths[3] - 1) + [512],
         ]
 
@@ -61,7 +61,7 @@ class MedViT(nn.Module):
         self.stage_block_types = [
             [ECBlock] * depths[0],
             [ECBlock] * (depths[1] - 1) + [LTBlock],
-            [ECBlock, LTBlock] * (depths[2] // 2),
+            [ECBlock, ECBlock, LTBlock] * (depths[2] // 3),
             [ECBlock] * (depths[3] - 1) + [LTBlock],
         ]
         input_channel = 64
@@ -109,7 +109,7 @@ class MedViT(nn.Module):
         self.proj_head = nn.Sequential(
             nn.Linear(input_channel, num_classes),
         )
-
+        print(num_classes)
         self.stage_out_idx = [sum(depths[: idx + 1]) - 1 for idx in range(len(depths))]
         print("initialize_weights...")
         self._initialize_weights()
@@ -136,7 +136,7 @@ class Testion(nn.Module):
         super(Testion, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
-        self.patch_embedding = BasicStem(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
+        self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
 
         initial_size = img_size[0] // 16
 
@@ -216,7 +216,6 @@ class Testion(nn.Module):
 
     def forward(self, x):
         x = self.patch_embedding(x)
-        x = x.flatten(2).transpose(1, 2)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
 

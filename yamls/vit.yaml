@@ -10,7 +10,7 @@ model:
     num_labels: 101
     is_encoder_decoder: False
     use_cache: True
-    image_size: 128
+    image_size: 224
     patch_size: 16
     num_channels: 3
 
@@ -26,5 +26,5 @@ training:
 
 dataset:
   name: "FOOD101"
-  img_size: (3, 128, 128)
+  img_size: (3, 224, 224)
   num_classes: 101
