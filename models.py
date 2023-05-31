@@ -165,7 +165,6 @@ class Testion(nn.Module):
 
         for stage in range(len(self.depth) - 1):
             aux_size = (aux_size + 1) // (2)
-            print(aux_size)
             drop = dpr[self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]]
             self.downsamples.append(
                 Downsample(
@@ -223,14 +222,10 @@ class Testion(nn.Module):
         x = self.patch_embedding(x)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
-        print(x.shape)
 
         for stage in range(len(self.depth) - 1):
-            print(x.shape)
             x = self.downsamples[stage](x)
-            print(x.shape, "y")
             x = self.parallels[stage](x)
-            print(x.shape)
 
         x = self.norm(x)
         x = self.gap(x)
