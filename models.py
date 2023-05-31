@@ -197,8 +197,7 @@ class Testion(nn.Module):
         )
 
         # Classifier head
-        self.head = nn.Linear(dims[-1], num_classes, bias=head_bias)
-        self.head_drop = nn.Dropout(dpr[-1])
+        self.head = nn.Linear(dims[-1], num_classes)
         print("init weights...")
         self._initialize_weights()
 
@@ -218,10 +217,9 @@ class Testion(nn.Module):
             x = self.parallels[stage](x)
 
         x = self.norm(x)
-        x = self.gap(x)
-        x = torch.flatten(x, 1)
+        x = self.gap(x).squeeze()
+        # x = torch.flatten(x, 1)
         x = self.head(x)
-        x = self.head_drop(x)
 
         return x
 
