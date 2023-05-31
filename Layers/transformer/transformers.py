@@ -18,17 +18,13 @@ class Transformer(nn.Module):
     Same as in the transformers graded notebook.
     """
 
-    def __init__(
-        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
-    ) -> None:
+    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None) -> None:
         super(Transformer, self).__init__()
         self.depth = depth
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(
-                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
-            )
+            self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -107,9 +103,7 @@ class CustomTransformer(nn.Module):
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(
-                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
-            )
+            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -147,28 +141,12 @@ class RVTransformer(nn.Module):
         self.pooling = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(
-                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
-            )
-            self.pooling.append(
-                nn.Conv2d(
-                    dim,
-                    dim,
-                    kernel_size=2 + 1,
-                    padding=2 // 2,
-                    stride=1,
-                    padding_mode="zeros",
-                    groups=dim,
-                )
-            )
+            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate[_], size=size))
 
     def forward(self, x) -> torch.Tensor:
         N, C, H = x.shape
         for state in range(self.depth):
             x = self.blocks[state](x)
-            x = x.view(N, int(C**0.5), int(C**0.5), H).transpose(-3, -1)
-            x = self.pooling[state](x)
-            x = x.transpose(-3, -1).contiguous().view(N, C, H)
 
         return x
 

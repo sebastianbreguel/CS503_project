@@ -370,8 +370,8 @@ class Model1ParallelBlock(nn.Module):
         super(Model1ParallelBlock, self).__init__()
         init_values = 1e-4
 
-        self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads, size=size)
-        self.attns2 = Attention(dim, dropout=drop, num_heads=num_heads)
+        self.attns1 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)
+        self.attns2 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)
         self.norm1 = nn.LayerNorm(dim)
 
         self.mlp1 = RobustMlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)

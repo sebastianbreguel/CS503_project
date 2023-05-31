@@ -175,14 +175,13 @@ class Testion(nn.Module):
             )
 
             self.parallels.append(
-                ParallelTransformers(
+                RVTransformer(
                     dim=dims[stage + 1],
                     depth=self.depth[stage + 1],
                     num_heads=num_heads,
                     mlp_ratio=mlp_ratio,
                     drop_rate=drop,
                     size=aux_size,
-                    final=final_attention[stage],
                 )
             )
 
