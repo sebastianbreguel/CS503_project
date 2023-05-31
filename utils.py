@@ -7,6 +7,10 @@ from robust import PoolingTransformer
 from transformers import ViTConfig, ViTForImageClassification
 import random
 
+import uuid
+import os
+import torchvision.transforms as transformspil
+
 from dataset import add_corruption
 
 MODELS = ["ViT", "BreguiT", "RVT", "MedViT"]
@@ -155,6 +159,29 @@ def train_model(
 
     return model, train_losses, val_losses, train_accuracy, val_accuracy
 
+
+def store_corruptions(loader_test):
+    # Transform tensor to PIL Image
+    to_pil = transformspil.ToPILImage()
+    print("Storing corruptions...")
+    for inputs, targets in tqdm(loader_test, total=len(loader_test)):
+        # Add corruptions to inputs
+        corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
+        severity = random.randint(1, 5)
+        inputs = add_corruption(inputs, corruption_type, severity)
+
+        # We are assuming inputs and targets are batches and they are tensors
+        for img, target in zip(inputs, targets):
+            # Create directory for each class if it doesn't exist
+            class_dir = os.path.join('data', 'food-101', 'corrupted', str(target.item()))
+            os.makedirs(class_dir, exist_ok=True)
+            
+            # Convert tensor to PIL Image
+            img_pil = to_pil(img)
+            
+            # Save image to appropriate directory with a unique name
+            img_name = f'{uuid.uuid4().hex}.png'  # Use UUID to ensure the uniqueness of the image names
+            img_pil.save(os.path.join(class_dir, img_name))
 
 def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
     test_loss = 0

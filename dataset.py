@@ -35,9 +35,7 @@ def add_corruption(x, corruption_type, severity=1):
         the corrupted images
     """
     device = x.device
-    x = x.cpu().numpy() / 255.0
-    x = np.nan_to_num(x)
-    x = np.clip(x, 0, 1)
+    x = x.cpu().numpy()
     if corruption_type == "identity":
         pass
     elif corruption_type == "shot_noise":
@@ -71,7 +69,7 @@ def add_corruption(x, corruption_type, severity=1):
     # Clip to ensure values are within the correct range and convert back to PyTorch tensor
     x = np.clip(x, 0, 1)
     # Convert to PyTorch tensor and scale back to original range (0-255) if needed.
-    x = torch.from_numpy(x).float().to(device) * 255.0
+    x = torch.from_numpy(x).float().to(device)
     return x
 
 
@@ -184,3 +182,24 @@ def get_dataset(
     loader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False)
 
     return loader_train, loader_val, loader_test
+
+
+
+def get_dataset_to_corrupt(num_workers: int = 1,):
+    transform_test = transforms.Compose(
+        [
+            transforms.Resize(size=(224, 224)),
+            transforms.ToTensor(),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
+    dataset_test = Food101(
+        root="./data",
+        split="test",
+        download=True,
+        transform=transform_test,
+    )
+
+    loader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False)
+
+    return loader_test
