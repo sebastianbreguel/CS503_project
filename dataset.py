@@ -34,6 +34,7 @@ def add_corruption(x, corruption_type, severity=1):
     '''
     device = x.device
     x = x.cpu().numpy() / 255.0
+    x = np.nan_to_num(x)
     if corruption_type == "identity":
         pass
     elif corruption_type == "shot_noise":
