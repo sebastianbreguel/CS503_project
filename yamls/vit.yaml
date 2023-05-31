@@ -1,0 +1,30 @@
+model:
+  name: "ViT"
+  params:
+    hidden_size: 192
+    num_hidden_layers: 12
+    num_attention_heads: 3
+    intermediate_size: 768
+    hidden_dropout_prob: 0
+    attention_probs_dropout_prob: 0
+    num_labels: 101
+    is_encoder_decoder: False
+    use_cache: True
+    image_size: 224
+    patch_size: 16
+    num_channels: 3
+
+optimizer:
+  name: "AdamW"
+  params:
+    lr: 0.0005
+    weight_decay: 0.001
+
+training:
+  num_epochs: 10
+  loss: "cross entropy"
+
+dataset:
+  name: "FOOD101"
+  img_size: (3, 224, 224)
+  num_classes: 101
