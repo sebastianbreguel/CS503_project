@@ -384,16 +384,16 @@ class Model1ParallelBlock(nn.Module):
         super(Model1ParallelBlock, self).__init__()
         init_values = 1e-4
 
-        self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads, size=size)
+        self.attns1 = Attention(dim, dropout=drop, num_heads=num_heads)
         self.attns2 = Attention(dim, dropout=drop, num_heads=num_heads)
         self.gamma_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.gamma_2 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm1 = nn.LayerNorm(dim)
 
-        self.mlp1 = Mlp(
+        self.mlp1 = RobustMlp(
             dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation
         )
-        self.mlp2 = Mlp(
+        self.mlp2 = RobustMlp(
             dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation
         )
         self.gamma_1_1 = nn.Parameter(
