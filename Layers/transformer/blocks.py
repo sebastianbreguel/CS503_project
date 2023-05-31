@@ -372,19 +372,15 @@ class Model1ParallelBlock(nn.Module):
 
         self.attns1 = ConvAttention(dim, dropout=drop, num_heads=num_heads, size=size)
         self.attns2 = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.gamma_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
-        self.gamma_2 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm1 = nn.LayerNorm(dim)
 
         self.mlp1 = RobustMlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
         self.mlp2 = RobustMlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
-        self.gamma_1_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
-        self.gamma_2_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm2 = nn.LayerNorm(dim)
 
         self.drop_path = DropPath(drop) if drop > 0.0 else nn.Identity()
 
     def forward(self, x, mask=None):
-        x = x + self.drop_path(self.gamma_1 * self.attns1(self.norm1(x))) + self.drop_path(self.gamma_2 * self.attns2(self.norm1(x)))
-        x = x + self.drop_path(self.gamma_1 * self.mlp1(self.norm2(x))) + self.drop_path(self.gamma_2 * self.mlp2(self.norm2(x)))
+        x = x + self.drop_path(self.attns1(self.norm1(x))) + self.drop_path(self.attns2(self.norm1(x)))
+        x = x + self.drop_path(self.mlp1(self.norm2(x))) + self.drop_path(self.mlp2(self.norm2(x)))
         return x
