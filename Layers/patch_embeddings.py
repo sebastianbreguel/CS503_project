@@ -411,7 +411,7 @@ class SE(nn.Module):
     def forward(self, x):
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
+        y = self.fc(y).view(b, c, 1, 1).to(memory_format=torch.contiguous_format)
         return x * y
 
 
@@ -448,12 +448,12 @@ class ReduceSize(nn.Module):
         x = x.contiguous()
         x = self.norm1(x)
         _, C, _ = x.shape
-        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5))
+        x = rearrange(x, "b (h w) c -> b c h w", h=int(C**0.5), w=int(C**0.5)).to(memory_format=torch.contiguous_format)
         x = x + self.conv(x)
         x = self.reduction(x)
-        x = rearrange(x, "b c h w -> b h w c")
+        x = rearrange(x, "b c h w -> b h w c").to(memory_format=torch.contiguous_format)
         x = self.norm2(x)
-        x = rearrange(x, "b h w c -> b (h w) c")
+        x = rearrange(x, "b h w c -> b (h w) c").to(memory_format=torch.contiguous_format)
         return x
 
 

@@ -42,9 +42,7 @@ class Block(nn.Module):
         super(Block, self).__init__()
 
         self.attention = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = Mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = Mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = norm_layer(dim)
         self.LN_2 = norm_layer(dim)
         self.drop = nn.Dropout(drop)
@@ -169,9 +167,7 @@ class CustomBlock(nn.Module):
         super(CustomBlock, self).__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads)
-        self.MLP = mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
@@ -210,9 +206,7 @@ class RobustBlock(nn.Module):
         super(RobustBlock, self).__init__()
 
         self.attention = attention(dim, dropout=drop, num_heads=num_heads, size=size)
-        self.MLP = mlp(
-            dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio
-        )
+        self.MLP = mlp(dim, dropout=drop, activation_function=activation, mlp_ratio=mlp_ratio)
         self.LN_1 = nn.LayerNorm(dim)
         self.LN_2 = nn.LayerNorm(dim)
         self.drop = nn.Dropout(drop)
@@ -258,9 +252,7 @@ class ECBlock(nn.Module):
         self.MHCA = MultiCHA(out_channels, num_heads, dropout=drop)
         self.attention_path_dropout = DropPath(path_dropout)
 
-        self.conv = LocalityFeedForward(
-            out_channels, 1, mlp_ratio, reduction=out_channels
-        )
+        self.conv = LocalityFeedForward(out_channels, 1, mlp_ratio, reduction=out_channels)
 
         self.norm = nn.BatchNorm2d(out_channels, eps=1e-5)
 
@@ -296,9 +288,7 @@ class LTBlock(nn.Module):
         self.out_channels = out_channels
         self.mix_block_ratio = mix_block_ratio
 
-        self.mhsa_out_channels = _make_divisible(
-            int(out_channels * mix_block_ratio), 32
-        )
+        self.mhsa_out_channels = _make_divisible(int(out_channels * mix_block_ratio), 32)
         self.mhca_out_channels = out_channels - self.mhsa_out_channels
 
         self.patch_embed = MedPatchEmbed(in_channels, self.mhsa_out_channels, stride)
@@ -311,17 +301,13 @@ class LTBlock(nn.Module):
         )
         self.mhsa_path_dropout = DropPath(path_dropout * mix_block_ratio)
 
-        self.projection = MedPatchEmbed(
-            self.mhsa_out_channels, self.mhca_out_channels, stride=1
-        )
+        self.projection = MedPatchEmbed(self.mhsa_out_channels, self.mhca_out_channels, stride=1)
 
         self.mhca = MultiCHA(self.mhca_out_channels, num_heads=num_heads)
         self.mhca_path_dropout = DropPath(path_dropout * (1 - mix_block_ratio))
 
         self.norm2 = nn.BatchNorm2d(out_channels, eps=1e-6)
-        self.conv = LocalityFeedForward(
-            out_channels, 1, mlp_ratio, reduction=out_channels
-        )
+        self.conv = LocalityFeedForward(out_channels, 1, mlp_ratio, reduction=out_channels)
 
         self.is_bn_merged = False
 
@@ -384,24 +370,16 @@ class Model1ParallelBlock(nn.Module):
         super(Model1ParallelBlock, self).__init__()
         init_values = 1e-4
 
-        self.attns1 = Attention(dim, dropout=drop, num_heads=num_heads)
-        self.attns2 = Attention(dim, dropout=drop, num_heads=num_heads)
+        self.attns1 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)
+        self.attns2 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)
         self.gamma_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.gamma_2 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm1 = nn.LayerNorm(dim)
 
-        self.mlp1 = RobustMlp(
-            dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation
-        )
-        self.mlp2 = RobustMlp(
-            dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation
-        )
-        self.gamma_1_1 = nn.Parameter(
-            init_values * torch.ones((dim)), requires_grad=True
-        )
-        self.gamma_2_1 = nn.Parameter(
-            init_values * torch.ones((dim)), requires_grad=True
-        )
+        self.mlp1 = RobustMlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
+        self.mlp2 = RobustMlp(dim, dropout=drop, mlp_ratio=mlp_ratio, activation_function=activation)
+        self.gamma_1_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
+        self.gamma_2_1 = nn.Parameter(init_values * torch.ones((dim)), requires_grad=True)
         self.norm2 = nn.LayerNorm(dim)
 
         self.drop_path = DropPath(drop) if drop > 0.0 else nn.Identity()
@@ -418,14 +396,6 @@ class Model1ParallelBlock(nn.Module):
                 nn.init.constant_(m.weight, 1.0)
 
     def forward(self, x, mask=None):
-        x = (
-            x
-            + self.drop_path(self.gamma_1 * self.attns1(self.norm1(x)))
-            + self.drop_path(self.gamma_2 * self.attns2(self.norm1(x)))
-        )
-        x = (
-            x
-            + self.drop_path(self.gamma_1 * self.mlp1(self.norm2(x)))
-            + self.drop_path(self.gamma_2 * self.mlp2(self.norm2(x)))
-        )
+        x = x + self.drop_path(self.gamma_1 * self.attns1(self.norm1(x))) + self.drop_path(self.gamma_2 * self.attns2(self.norm1(x)))
+        x = x + self.drop_path(self.gamma_1 * self.mlp1(self.norm2(x))) + self.drop_path(self.gamma_2 * self.mlp2(self.norm2(x)))
         return x

@@ -166,13 +166,7 @@ class Testion(nn.Module):
         for stage in range(len(self.depth) - 1):
             aux_size = (aux_size + 1) // (2)
             drop = dpr[self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]]
-            self.downsamples.append(
-                Downsample(
-                    dims[stage],
-                    dims[stage + 1],
-                    groups[stage],
-                )
-            )
+            self.downsamples.append(ReduceSize(dims[stage]))
 
             self.parallels.append(
                 ParallelTransformers(
