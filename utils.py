@@ -203,8 +203,8 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
     test_loss /= len(loader_test)
     accuracy = correct / len(loader_test.dataset)
 
-    test_corrupted_loss /= len(loader_test)
-    accuracy_corrupted = correct_corrupted / len(loader_test.dataset)
+    # test_corrupted_loss /= len(loader_test)
+    # accuracy_corrupted = correct_corrupted / len(loader_test.dataset)
     print(f"Test loss: {test_loss:.3f}")
     print(f"Test top-1 accuracy: {accuracy*100}%")
 
