@@ -143,7 +143,7 @@ def get_dataset(
     elif name == "FOOD101":
         transform_train = transforms.Compose(
             [
-                transforms.Resize(size=(128, 128)),
+                transforms.Resize(size=(224, 224)),
                 # torchvision.transforms.AugMix(),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
@@ -151,7 +151,7 @@ def get_dataset(
         )
         transform_test = transforms.Compose(
             [
-                transforms.Resize(size=(128, 128)),
+                transforms.Resize(size=(224, 224)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ]

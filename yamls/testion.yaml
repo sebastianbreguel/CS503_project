@@ -1,7 +1,7 @@
 model:
   name: "testion"
   params:
-    depth: [4, 4]
+    depth: [4, 3]
     num_heads: 4
     mlp_ratio: 4.0
     drop_rate: 0.1

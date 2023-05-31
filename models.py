@@ -136,7 +136,7 @@ class Testion(nn.Module):
         super(Testion, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
-        self.patch_embedding = BasicStem(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
+        self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=128, strides=[2, 2, 2, 2])
 
         initial_size = img_size[0] // 16
 
@@ -216,7 +216,6 @@ class Testion(nn.Module):
 
     def forward(self, x):
         x = self.patch_embedding(x)
-        x = x.flatten(2).transpose(1, 2)
         for state in range(self.depth[0]):
             x = self.blocks[state](x)
 

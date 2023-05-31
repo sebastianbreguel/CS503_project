@@ -398,6 +398,7 @@ class PoolingTransformer(nn.Module):
     def forward_features(self, x):
         x = self.patch_embed(x)
         x = self.pos_drop(x)
+        print(x.shape)
         for stage in range(len(self.pools)):
             x = self.transformers[stage](x)
             x = self.pools[stage](x)

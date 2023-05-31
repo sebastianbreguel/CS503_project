@@ -182,23 +182,23 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
         pred = logits.argmax(dim=1, keepdim=True)
         correct += pred.eq(targets.view_as(pred)).sum().item()
 
-    for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
-        inputs, targets = imgs.to(device), cls_idxs.to(device)
+    # for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
+    #     inputs, targets = imgs.to(device), cls_idxs.to(device)
 
-        # Add corruptions to inputs
-        corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
-        severity = random.randint(1, 5)
-        inputs = add_corruption(inputs, corruption_type, severity)
+    #     # Add corruptions to inputs
+    #     corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
+    #     severity = random.randint(1, 5)
+    #     inputs = add_corruption(inputs, corruption_type, severity)
 
-        with torch.no_grad():
-            logits = model(inputs)
-            if model_name == "ViT":
-                logits = logits.logits
-        loss = loss_function(logits, targets)
-        test_corrupted_loss += loss.item()
+    #     with torch.no_grad():
+    #         logits = model(inputs)
+    #         if model_name == "ViT":
+    #             logits = logits.logits
+    #     loss = loss_function(logits, targets)
+    #     test_corrupted_loss += loss.item()
 
-        pred = logits.argmax(dim=1, keepdim=True)
-        correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
+    #     pred = logits.argmax(dim=1, keepdim=True)
+    #     correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
 
     test_loss /= len(loader_test)
     accuracy = correct / len(loader_test.dataset)
@@ -208,6 +208,7 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
     print(f"Test loss: {test_loss:.3f}")
     print(f"Test top-1 accuracy: {accuracy*100}%")
 
-    print(f"Test corrupted loss: {test_corrupted_loss:.3f}")
-    print(f"Test corrupted top-1 accuracy: {accuracy_corrupted*100}%")
-    return test_loss, accuracy, test_corrupted_loss, accuracy_corrupted
+    # print(f"Test corrupted loss: {test_corrupted_loss:.3f}")
+    # print(f"Test corrupted top-1 accuracy: {accuracy_corrupted*100}%")
+    # return test_loss, accuracy, test_corrupted_loss, accuracy_corrupted
+    return test_loss, accuracy

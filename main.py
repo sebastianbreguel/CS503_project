@@ -38,9 +38,9 @@ def main(config):
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
 
-    # input_size = ast.literal_eval(config["dataset"]["img_size"])
+    input_size = ast.literal_eval(config["dataset"]["img_size"])
     # # pri   nt(model)
-    # summary(model, input_size)
+    summary(model, input_size)
     model = model.to(device)
     model_name = config["model"]["name"]
 
@@ -61,7 +61,8 @@ def main(config):
     localtime = time.asctime(time.localtime(time.time()))
     localtime = localtime.replace(" ", "_")
     localtime = localtime.replace(":", "_")
-    test_loss, test_accuracy, test_corrupted_loss, test_corrupted_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    # test_loss, test_accuracy, test_corrupted_loss, test_corrupted_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
     with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
         json.dump(
             {
@@ -71,8 +72,8 @@ def main(config):
                 "val_accuracy": val_accuracy,
                 "test_loss": test_loss,
                 "test_accuracy": test_accuracy,
-                "test_corrupted_loss": test_corrupted_loss,
-                "test_corrupted_accuracy": test_corrupted_accuracy,
+                # "test_corrupted_loss": test_corrupted_loss,
+                # "test_corrupted_accuracy": test_corrupted_accuracy,
             },
             outfile,
         )

@@ -19,5 +19,5 @@ training:
 
 dataset:
   name: "FOOD101"
-  img_size: (3, 224, 224)
+  img_size: (3, 128, 128)
   num_classes: 101
