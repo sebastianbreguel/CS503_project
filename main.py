@@ -6,7 +6,7 @@ import torch
 import yaml
 from torchsummary import summary
 import time
-from dataset import get_dataset
+from dataset import get_dataset, get_dataset_to_corrupt
 from utils import (
     get_device,
     get_loss,
@@ -32,8 +32,15 @@ def main(config):
     model = get_model(config)
     # load model
     model_name = config["model"]["name"]
-    if model_name == "testion":
-        model.load_state_dict(torch.load("weights/testion/best_model_Wed_May_31_20_13_12_2023.pth"))
+    if model_name == "robust":
+        model.load_state_dict(
+            torch.load(
+                "weights/robust/best_model_Wed_May_31_16_16_50_2023.pth",
+                map_location=device,
+            )
+        )
+
+    model = model.to(device)
 
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
@@ -61,7 +68,9 @@ def main(config):
     localtime = localtime.replace(" ", "_")
     localtime = localtime.replace(":", "_")
     # test_loss, test_accuracy, test_corrupted_loss, test_corrupted_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
-    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
+    test_loss, test_accuracy = test_model(
+        model, loader_test, loss, device, model_name=model_name
+    )
     with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
         json.dump(
             {

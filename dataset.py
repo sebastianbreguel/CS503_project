@@ -3,7 +3,14 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-from torchvision.datasets import CIFAR10, CIFAR100, MNIST, ImageFolder, Food101, ImageNet
+from torchvision.datasets import (
+    CIFAR10,
+    CIFAR100,
+    MNIST,
+    ImageFolder,
+    Food101,
+    ImageNet,
+)
 import numpy as np
 import skimage as sk
 from skimage.filters import gaussian
@@ -52,7 +59,9 @@ def add_corruption(x, corruption_type, severity=1):
         for i in range(x.shape[0]):
             x[i] = gaussian(x[i], sigma=c, channel_axis=0)
     elif corruption_type == "glass_blur":
-        c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][severity - 1]
+        c = [(0.7, 1, 2), (0.9, 2, 1), (1, 2, 3), (1.1, 3, 2), (1.5, 4, 2)][
+            severity - 1
+        ]
         for i in range(x.shape[0]):
             x[i] = gaussian(x[i], sigma=c[0], channel_axis=0)
             h, w = x[i].shape[1:]
@@ -61,8 +70,16 @@ def add_corruption(x, corruption_type, severity=1):
                     for ww in range(w - c[1], c[1], -1):
                         dx, dy = np.random.randint(-c[1], c[1], size=(2,))
                         hh_prime, ww_prime = hh + dy, ww + dx
-                        if hh_prime >= 0 and hh_prime < h and ww_prime >= 0 and ww_prime < w:
-                            x[i, :, hh, ww], x[i, :, hh_prime, ww_prime] = x[i, :, hh_prime, ww_prime].copy(), x[i, :, hh, ww].copy()
+                        if (
+                            hh_prime >= 0
+                            and hh_prime < h
+                            and ww_prime >= 0
+                            and ww_prime < w
+                        ):
+                            x[i, :, hh, ww], x[i, :, hh_prime, ww_prime] = (
+                                x[i, :, hh_prime, ww_prime].copy(),
+                                x[i, :, hh, ww].copy(),
+                            )
             x[i] = gaussian(x[i], sigma=c[0], channel_axis=0)
     else:
         raise ValueError(f"Invalid corruption type: {corruption_type}")
@@ -85,9 +102,15 @@ def get_dataset(
             ]
         )
 
-        dataset_train_val = MNIST(root="./data", train=True, download=True, transform=transform)
-        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [50_000, 10_000])
-        dataset_test = MNIST(root="./data", train=False, download=True, transform=transform)
+        dataset_train_val = MNIST(
+            root="./data", train=True, download=True, transform=transform
+        )
+        dataset_train, dataset_val = torch.utils.data.random_split(
+            dataset_train_val, [50_000, 10_000]
+        )
+        dataset_test = MNIST(
+            root="./data", train=False, download=True, transform=transform
+        )
 
     elif name == "MNIST-C":
         transform = torchvision.transforms.Compose(
@@ -110,10 +133,16 @@ def get_dataset(
             ]
         )
 
-        dataset_train_val = CIFAR10(root="./data", train=True, download=True, transform=transform)
-        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [45_000, 5_000])
+        dataset_train_val = CIFAR10(
+            root="./data", train=True, download=True, transform=transform
+        )
+        dataset_train, dataset_val = torch.utils.data.random_split(
+            dataset_train_val, [45_000, 5_000]
+        )
 
-        dataset_test = CIFAR10(root="./data", train=False, download=True, transform=transform)
+        dataset_test = CIFAR10(
+            root="./data", train=False, download=True, transform=transform
+        )
 
     elif name == "CIFAR100":
         transform_train = transforms.Compose(
@@ -121,21 +150,31 @@ def get_dataset(
                 # TODO resize
                 transforms.RandomCrop(32, padding=4),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]),
+                transforms.Normalize(
+                    mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
+                ),
             ]
         )
         transform_test = transforms.Compose(
             [
                 torchvision.transforms.Resize((32, 32)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]),
+                transforms.Normalize(
+                    mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
+                ),
             ]
         )
 
-        dataset_train_val = CIFAR100(root="./data", train=True, download=True, transform=transform_train)
-        dataset_test = CIFAR100(root="./data", train=False, download=True, transform=transform_test)
+        dataset_train_val = CIFAR100(
+            root="./data", train=True, download=True, transform=transform_train
+        )
+        dataset_test = CIFAR100(
+            root="./data", train=False, download=True, transform=transform_test
+        )
 
-        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [45_000, 5_000])
+        dataset_train, dataset_val = torch.utils.data.random_split(
+            dataset_train_val, [45_000, 5_000]
+        )
         # TODO Imagnet
         # TODO Cifar10-100  and Imagnet C
     elif name == "FOOD101":
@@ -144,14 +183,18 @@ def get_dataset(
                 transforms.Resize(size=(224, 224)),
                 # torchvision.transforms.AugMix(),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
         transform_test = transforms.Compose(
             [
                 transforms.Resize(size=(224, 224)),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
@@ -167,9 +210,13 @@ def get_dataset(
             download=True,
             transform=transform_test,
         )
-        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
+        dataset_train, dataset_val = torch.utils.data.random_split(
+            dataset_train_val, [75750 - 7575, 7575]
+        )
 
-        dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [75750 - 7575, 7575])
+        dataset_train, dataset_val = torch.utils.data.random_split(
+            dataset_train_val, [75750 - 7575, 7575]
+        )
 
     loader_train = DataLoader(
         dataset_train,
@@ -178,19 +225,24 @@ def get_dataset(
         shuffle=True,
         drop_last=True,
     )
-    loader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False)
-    loader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False)
+    loader_val = DataLoader(
+        dataset_val, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False
+    )
+    loader_test = DataLoader(
+        dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False
+    )
 
     return loader_train, loader_val, loader_test
 
 
-
-def get_dataset_to_corrupt(num_workers: int = 1,):
+def get_dataset_to_corrupt(
+    num_workers: int = 1,
+):
     transform_test = transforms.Compose(
         [
             transforms.Resize(size=(224, 224)),
             transforms.ToTensor(),
-            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
     dataset_test = Food101(
@@ -200,6 +252,8 @@ def get_dataset_to_corrupt(num_workers: int = 1,):
         transform=transform_test,
     )
 
-    loader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False)
+    loader_test = DataLoader(
+        dataset_test, batch_size=BATCH_SIZE, num_workers=num_workers, drop_last=False
+    )
 
     return loader_test

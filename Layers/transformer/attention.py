@@ -133,7 +133,11 @@ class ConvAttention(nn.Module):
             Output of shape [B N C].
         """
         B, N, C = x.shape
-        if self.conv_proj_q is not None or self.conv_proj_k is not None or self.conv_proj_v is not None:
+        if (
+            self.conv_proj_q is not None
+            or self.conv_proj_k is not None
+            or self.conv_proj_v is not None
+        ):
             q, k, v = self.forward_conv(x)
             q, k, v = self.Q(q), self.K(k), self.V(v)
         else:
@@ -192,7 +196,11 @@ class SpatialDepthWisePerHeadConvolution(nn.Module):
         x = self.conv(x)
         # Crop the right most `kernel_size - 1` results since we padded both sides
         x = x[:, :, : -(self.kernel_size - 1)]
-        x = x.view(B, self.heads, self.head_dim, N).permute(3, 0, 1, 2).to(memory_format=torch.contiguous_format)
+        x = (
+            x.view(B, self.heads, self.head_dim, N)
+            .permute(3, 0, 1, 2)
+            .to(memory_format=torch.contiguous_format)
+        )
 
         return x
 
@@ -236,9 +244,15 @@ class MultiDPHConvHeadAttention(nn.Module):
             Output of shape [B N C].
         """
         B, N, C = x.shape
-        q = self.Q(self.Q_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
-        k = self.K(self.K_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
-        v = self.V(self.V_linear(x).view(B, self.num_heads * self.head_dim, N)).transpose(1, 2)
+        q = self.Q(
+            self.Q_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
+        k = self.K(
+            self.K_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
+        v = self.V(
+            self.V_linear(x).view(B, self.num_heads * self.head_dim, N)
+        ).transpose(1, 2)
 
         scores = torch.matmul(q, k.transpose(-1, -2)) * self.scale
 
@@ -329,7 +343,9 @@ class MultiCHA(nn.Module):
         )
         self.norm = nn.BatchNorm2d(out_channels, eps=1e-6)
         self.act = nn.ReLU(inplace=True)
-        self.projection = nn.Conv2d(out_channels, out_channels, kernel_size=1, bias=False)
+        self.projection = nn.Conv2d(
+            out_channels, out_channels, kernel_size=1, bias=False
+        )
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -435,7 +451,9 @@ class RoformerAttention(nn.Module):
     def sinusoidal_position_embeddings(self, inputs):
         output_dim = self.dim // self.num_heads
         seq_len = inputs.size(1)
-        position_ids = torch.arange(0, seq_len, dtype=torch.float32, device=inputs.device)
+        position_ids = torch.arange(
+            0, seq_len, dtype=torch.float32, device=inputs.device
+        )
 
         indices = torch.arange(0, output_dim // 2, dtype=torch.float32)
         indices = torch.pow(10000.0, -2 * indices / output_dim).to(inputs.device)
@@ -506,7 +524,9 @@ class RobustAttention(nn.Module):
         self.K = nn.Linear(dim, dim, bias)
         self.V = nn.Linear(dim, dim, bias)
         self.size = size * size
-        self.W = nn.Parameter(torch.randn(self.size, self.size), requires_grad=True)  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
+        self.W = nn.Parameter(
+            torch.randn(self.size, self.size), requires_grad=True
+        )  # TODO see how to obtain the N  # learnable paramter to learn the position encoding
 
         self.softmax = nn.Softmax(dim=-1)
         self.attention_dropout = nn.Dropout(dropout)

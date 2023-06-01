@@ -7,7 +7,9 @@ class Mlp(nn.Module):
     Base two layer MLP. From the transformers notebook.
     """
 
-    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0) -> None:
+    def __init__(
+        self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0
+    ) -> None:
         """
         params:
             :dim: Dimensionality of each token
@@ -35,7 +37,9 @@ class RobustMlp(nn.Module):
     - source https://github.com/vtddggg/Robust-Vision-Transformer/blob/main/robust_models.py
     """
 
-    def __init__(self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0) -> None:
+    def __init__(
+        self, dim, activation_function=nn.GELU, dropout=0.0, mlp_ratio=4.0
+    ) -> None:
         """
         params:
             :dim: Dimensionality of each token
@@ -62,7 +66,11 @@ class RobustMlp(nn.Module):
 
     def forward(self, x) -> torch.Tensor:
         B, N, C = x.shape
-        x = x.reshape(B, int(N**0.5), int(N**0.5), C).permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
+        x = (
+            x.reshape(B, int(N**0.5), int(N**0.5), C)
+            .permute(0, 3, 1, 2)
+            .to(memory_format=torch.contiguous_format)
+        )
         x = self.fc1(x)
         x = self.bn1(x)
         x = self.act(x)

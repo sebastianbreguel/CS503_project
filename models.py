@@ -67,7 +67,9 @@ class MedViT(nn.Module):
         input_channel = 64
         features = []
         idx = 0
-        dpr = [x.item() for x in torch.linspace(0, 0.1, sum(depths))]  # stochastic depth decay rule
+        dpr = [
+            x.item() for x in torch.linspace(0, 0.1, sum(depths))
+        ]  # stochastic depth decay rule
         for stage_id in range(len(depths)):
             numrepeat = depths[stage_id]
             output_channels = self.stage_out_channels[stage_id]
@@ -116,7 +118,9 @@ class MedViT(nn.Module):
 
     def _initialize_weights(self):
         for n, m in self.named_modules():
-            if isinstance(m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm, nn.BatchNorm1d)):
+            if isinstance(
+                m, (nn.BatchNorm2d, nn.GroupNorm, nn.LayerNorm, nn.BatchNorm1d)
+            ):
                 nn.init.constant_(m.weight, 1.0)
                 nn.init.constant_(m.bias, 0)
 
@@ -132,18 +136,34 @@ class MedViT(nn.Module):
 
 
 class Testion(nn.Module):
-    def __init__(self, depth=[4, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs):
+    def __init__(
+        self,
+        depth=[4, 2],
+        num_heads=4,
+        mlp_ratio=4.0,
+        drop_rate=0.0,
+        patch_embedding="default",
+        positional_encoding=False,
+        img_size=(224, 224),
+        num_classes=10,
+        head_bias=False,
+        **kwargs
+    ):
         super(Testion, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
-        self.patch_embedding = ConvEmbedding(3, embed_dim=32, out_channels=96, patch_size=2)
+        self.patch_embedding = ConvEmbedding(
+            3, embed_dim=32, out_channels=96, patch_size=2
+        )
         # self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=96, strides=[2, 2, 2, 2])
 
         initial_size = img_size[0] // 16
 
         self.blocks = nn.ModuleList()
         self.depth = depth
-        dpr = [x.item() for x in torch.linspace(0, drop_rate, sum(depth))]  # stochastic depth decay rule
+        dpr = [
+            x.item() for x in torch.linspace(0, drop_rate, sum(depth))
+        ]  # stochastic depth decay rule
         dims = [96, 192, 384]
         groups = [48, 96]
         self.downsamples = nn.ModuleList()
@@ -165,7 +185,9 @@ class Testion(nn.Module):
 
         for stage in range(len(self.depth) - 1):
             aux_size = (aux_size + 1) // (2)
-            drop = dpr[self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]]
+            drop = dpr[
+                self.depth[0] + stage : self.depth[0] + stage + self.depth[stage + 1]
+            ]
             self.downsamples.append(
                 Downsample(
                     dims[stage],
@@ -262,7 +284,9 @@ class MedViT_S(nn.Module):
         input_channel = 64
         features = []
         idx = 0
-        dpr = [x.item() for x in torch.linspace(0, 0.1, sum(depths))]  # stochastic depth decay rule
+        dpr = [
+            x.item() for x in torch.linspace(0, 0.1, sum(depths))
+        ]  # stochastic depth decay rule
         for stage_id in range(len(depths)):
             numrepeat = depths[stage_id]
             output_channels = self.stage_out_channels[stage_id]
