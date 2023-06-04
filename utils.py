@@ -32,9 +32,7 @@ def get_model(config) -> torch.nn.Module:
         model = PoolingTransformer(**config["model"]["params"])
 
     else:
-        return NotImplementedError(
-            "Model not implemented. Please choose from: " + str(MODELS)
-        )
+        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -55,9 +53,7 @@ def get_optimizer(config, parameters) -> torch.optim.Optimizer:
         optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
 
     else:
-        return NotImplementedError(
-            "Optimizer not implemented. Please choose from: " + str(OPTIMIZERS)
-        )
+        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
 
     return optimizer
 
@@ -81,9 +77,7 @@ def get_loss(name):
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
-        raise NotImplementedError(
-            "Loss not implemented. Please choose from: " + str(LOSSES)
-        )
+        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
 
     return loss
 
@@ -160,12 +154,8 @@ def train_model(
             # save weights
             torch.save(best_model, f"weights/{model_name}/best_model_{localtime}.pth")
 
-        print(
-            f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}"
-        )
-        print(
-            f"Epoch {len(train_losses)}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%"
-        )
+        print(f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}")
+        print(f"Epoch {len(train_losses)}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%")
 
     return model, train_losses, val_losses, train_accuracy, val_accuracy
 
@@ -192,9 +182,7 @@ def store_corruptions(loader_test):
         # We are assuming inputs and targets are batches and they are tensors
         for img, target in zip(inputs, targets):
             # Create directory for each class if it doesn't exist
-            class_dir = os.path.join(
-                "data", "food-101", "corrupted", str(target.item())
-            )
+            class_dir = os.path.join("data", "food-101", "corrupted", str(target.item()))
             os.makedirs(class_dir, exist_ok=True)
 
             # Convert tensor to PIL Image
@@ -205,9 +193,7 @@ def store_corruptions(loader_test):
             img_pil.save(os.path.join(class_dir, img_name))
 
 
-def test_model(
-    model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"
-):
+def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
     test_loss = 0
     correct = 0
 
@@ -224,16 +210,12 @@ def test_model(
     number = 0
     for imgs, cls_idxs in loader_test:
         inputs, targets = imgs.to(device), cls_idxs.to(device)
-        corruption_type = random.choice(
-            ["shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur"]
-        )
+        corruption_type = random.choice(["shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur"])
 
         # Add corruptions to inputs
         severity = random.randint(1, 5)
         inputs = add_corruption(inputs, corruption_type, severity)
-        normalize = transforms.Normalize(
-            mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
-        )
+        normalize = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
         inputs = normalize(inputs)
         with torch.no_grad():
             logits = model(inputs)
