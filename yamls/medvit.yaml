@@ -6,6 +6,7 @@ model:
     drop_rate: 0.1
     num_classes: 101
     stem_chs: [64, 32, 64]
+    pretrained: False
 
 optimizer:
   name: "AdamW"

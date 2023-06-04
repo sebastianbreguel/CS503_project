@@ -224,7 +224,7 @@ def store_corruptions(loader_test):
             img_pil.save(os.path.join(class_dir, img_name))
 
 
-def test_corruptons(model, loss_function, device: str = "cpu", model_name: str = "ViT"):
+def test_corruptions(model, loss_function, device: str = "cpu", model_name: str = "ViT"):
     test_corrupted_loss = 0
     correct_corrupted = 0
 
