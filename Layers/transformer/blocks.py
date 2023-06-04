@@ -368,7 +368,6 @@ class Model1ParallelBlock(nn.Module):
             :num_parallel: Number of parallel blocks
         """
         super(Model1ParallelBlock, self).__init__()
-        init_values = 1e-4
 
         self.attns1 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)
         self.attns2 = RobustAttention(dim, dropout=drop, num_heads=num_heads, size=size)

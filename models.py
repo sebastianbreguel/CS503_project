@@ -23,7 +23,6 @@ from Layers import (
     RVTransformer,
     RobustBlock,
     ReduceSize,
-    ParallelTransformers,
     SineCosinePosEmbedding,
     Transformer,
 )
@@ -131,6 +130,7 @@ class MedViT(nn.Module):
         return x
 
 
+# Our model
 class Testion(nn.Module):
     def __init__(self, depth=[4, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs):
         super(Testion, self).__init__()

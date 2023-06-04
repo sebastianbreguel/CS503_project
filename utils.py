@@ -10,6 +10,7 @@ from torchvision import transforms
 import uuid
 import os
 import torchvision.transforms as transformspil
+from dataset import get_dataset_to_corrupt
 
 from dataset import add_corruption
 
@@ -152,7 +153,7 @@ def train_model(
             best_acc_train = val_accuracy
             best_model = model.state_dict()
             # save weights
-            torch.save(best_model, f"weights/{model_name}/best_model_{localtime}.pth")
+            torch.save(best_model, f"weights/{model_name}/best_model_{_}_{localtime}.pth")
 
         print(f"Epoch {len(train_losses)}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}")
         print(f"Epoch {len(train_losses)}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%")
@@ -160,15 +161,45 @@ def train_model(
     return model, train_losses, val_losses, train_accuracy, val_accuracy
 
 
+def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
+    test_loss = 0
+    correct = 0
+
+    model.eval()
+
+    for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
+        inputs, targets = imgs.to(device), cls_idxs.to(device)
+
+        # Add corruptions to inputs
+
+        with torch.no_grad():
+            logits = model(inputs)
+            if model_name == "ViT":
+                logits = logits.logits
+        loss = loss_function(logits, targets)
+        test_corrupted_loss += loss.item()
+
+        pred = logits.argmax(dim=1, keepdim=True)
+        correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
+
+    test_loss /= len(loader_test)
+    accuracy = correct / len(loader_test.dataset)
+
+    print(f"Test loss: {test_loss:.3f}")
+    print(f"Test top-1 accuracy: {accuracy*100}%")
+
+    return test_loss, accuracy
+
+
 def store_corruptions(loader_test):
     # Transform tensor to PIL Image
     to_pil = transformspil.ToPILImage()
     print("Storing corruptions...")
+    random.seed(42)
     for inputs, targets in tqdm(loader_test, total=len(loader_test)):
         # Add corruptions to inputs
         corruption_type = random.choice(
             [
-                "identity",
                 "shot_noise",
                 "impulse_noise",
                 "gaussian_noise",
@@ -193,14 +224,12 @@ def store_corruptions(loader_test):
             img_pil.save(os.path.join(class_dir, img_name))
 
 
-def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
-    test_loss = 0
-    correct = 0
-
+def test_corruptons(model, loss_function, device: str = "cpu", model_name: str = "ViT"):
     test_corrupted_loss = 0
     correct_corrupted = 0
 
     model.eval()
+    loader_test = get_dataset_to_corrupt()
 
     # Fix the seed for reproducibility
     random.seed(42)
@@ -237,33 +266,4 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
     print(f"Test corrupted top-1 accuracy: {accuracy_corrupted*100}%\n")
     print("-" * 50)
 
-    # for imgs, cls_idxs in tqdm(loader_test, total=len(loader_test)):
-    #     inputs, targets = imgs.to(device), cls_idxs.to(device)
-
-    #     # Add corruptions to inputs
-    #     corruption_type = random.choice(["identity", "shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
-    #     severity = random.randint(1, 5)
-    #     inputs = add_corruption(inputs, corruption_type, severity)
-
-    #     with torch.no_grad():
-    #         logits = model(inputs)
-    #         if model_name == "ViT":
-    #             logits = logits.logits
-    #     loss = loss_function(logits, targets)
-    #     test_corrupted_loss += loss.item()
-
-    #     pred = logits.argmax(dim=1, keepdim=True)
-    #     correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
-
-    test_loss /= len(loader_test)
-    accuracy = correct / len(loader_test.dataset)
-
-    # test_corrupted_loss /= len(loader_test)
-    # accuracy_corrupted = correct_corrupted / len(loader_test.dataset)
-    print(f"Test loss: {test_loss:.3f}")
-    print(f"Test top-1 accuracy: {accuracy*100}%")
-
-    # print(f"Test corrupted loss: {test_corrupted_loss:.3f}")
-    # print(f"Test corrupted top-1 accuracy: {accuracy_corrupted*100}%")
-    # return test_loss, accuracy, test_corrupted_loss, accuracy_corrupted
-    return test_loss, accuracy
+    return test_corrupted_loss, accuracy_corrupted
