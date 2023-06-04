@@ -3,6 +3,8 @@ import ast
 import pprint
 import json
 import torch
+import numpy
+import random
 import yaml
 from torchsummary import summary
 import time
@@ -20,6 +22,9 @@ from utils import (
 def main(config):
     # print configuration
     pprint.pprint(config)
+    random.seed(42)
+    numpy.random.seed(42)
+    torch.manual_seed(42)
 
     # device
     device = get_device()
@@ -45,9 +50,9 @@ def main(config):
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
 
-    # input_size = ast.literal_eval(config["dataset"]["img_size"])
+    input_size = ast.literal_eval(config["dataset"]["img_size"])
     # # # pri   nt(model)
-    # summary(model, input_size)
+    summary(model, input_size)
     model = model.to(device)
 
     # # # TODO: put this logic in an Algorithm class
@@ -68,9 +73,7 @@ def main(config):
     localtime = localtime.replace(" ", "_")
     localtime = localtime.replace(":", "_")
     # test_loss, test_accuracy, test_corrupted_loss, test_corrupted_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
-    test_loss, test_accuracy = test_model(
-        model, loader_test, loss, device, model_name=model_name
-    )
+    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
     with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
         json.dump(
             {
