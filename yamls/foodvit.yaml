@@ -7,7 +7,7 @@ model:
     drop_rate: 0.1
     num_classes: 101
     head_bias: False
-    pretrained: False
+pretrained: True
 
 optimizer:
   name: "AdamW"

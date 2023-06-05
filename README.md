@@ -6,7 +6,32 @@ This is the repository for the CS 503 Visual intelligence: Machines and Minds pr
 
 ## Instalation
 
+`conda create --name new`
+`conda activate new`
+`conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 -c pytorch`
+`pip install PyYAML torchsummary scikit-image opencv-python tqdm einops torch_geometric transformers`
+
 You can install the requirements by running `pip install -r requirements.txt`.
+
+### To run the code
+
+The models that we have are:
+
+- FoodVit
+- ViT: Vision Transformer
+- RVT: Robust Vision Transformer
+
+You should have an yamls file with the configuration of the model you want to run. running the command:
+
+`python main.py --config yamls/<model>.yaml`
+
+With this it will run the pretrained models with the weights folder. To run the models from scratch you should modify the yamls file with:
+
+```yaml
+pretrained: False
+```
+
+If you dont provide a path to the yamls file, it will run the default the ViT model.
 
 ## Structure
 
@@ -40,13 +65,6 @@ here is the list of datasets with the subset of variations we are going to use:
   - CIFAR100-C
 - FOOD101: 101K images, 101 classes
   - FOOD101-C: we to corrupt the images
-
-### To run the code
-
-You should have an yamls file with the configuration of the model you want to run. running the command:
-`python main.py --config <path_to_yamls_file>`
-
-If you dont provide a path to the yamls file, it will run the default the ViT model.
 
 ## References
 

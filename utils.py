@@ -22,33 +22,36 @@ def get_model(config, model_name, device) -> torch.nn.Module:
     if model_name == "ViT":
         configuration = ViTConfig(**config["model"]["params"])
         model = ViTForImageClassification(configuration)
-        model.load_state_dict(
-            torch.load(
-                "weights/ViT/best_model.pth",
-                map_location=device,
+        if config["pretrained"]:
+            model.load_state_dict(
+                torch.load(
+                    "weights/ViT/best_model.pth",
+                    map_location=device,
+                )
             )
-        )
 
     elif model_name == "MedViT":
         model = MedViT(**config["model"]["params"])
 
     elif model_name == "FoodViT":
         model = FoodViT(**config["model"]["params"])
-        model.load_state_dict(
-            torch.load(
-                "weights/FoodViT/best_model.pth",
-                map_location=device,
+        if config["pretrained"]:
+            model.load_state_dict(
+                torch.load(
+                    "weights/FoodViT/best_model.pth",
+                    map_location=device,
+                )
             )
-        )
 
     elif model_name == "RVT":
         model = RVT(**config["model"]["params"])
-        model.load_state_dict(
-            torch.load(
-                "weights/RVT/best_model.pth",
-                map_location=device,
+        if config["pretrained"]:
+            model.load_state_dict(
+                torch.load(
+                    "weights/RVT/best_model.pth",
+                    map_location=device,
+                )
             )
-        )
 
     else:
         return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
