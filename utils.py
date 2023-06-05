@@ -24,7 +24,7 @@ def get_model(config, model_name, device) -> torch.nn.Module:
         model = ViTForImageClassification(configuration)
         model.load_state_dict(
             torch.load(
-                "weights/ViT/best_model_24_Sun_Jun__4_21_45_29_2023.pth",
+                "weights/ViT/best_model.pth",
                 map_location=device,
             )
         )
