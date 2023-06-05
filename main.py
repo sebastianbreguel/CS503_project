@@ -38,8 +38,6 @@ def main(config):
     model_name = config["model"]["name"]
     model = get_model(config, model_name, device)
 
-    # load model
-
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
 
@@ -47,9 +45,10 @@ def main(config):
     # summary(model, input_size)
     model = model.to(device)
 
-    # # # # TODO: put this logic in an Algorithm class
-    num_epochs = config["training"]["num_epochs"]
     loader_train, loader_val, loader_test = get_dataset(config["dataset"]["name"])
+
+    # Training
+    num_epochs = config["training"]["num_epochs"]
     model, train_losses, val_losses, train_accuracy, val_accuracy = train_model(
         model,
         optimizer,
@@ -61,8 +60,10 @@ def main(config):
         model_name=model_name,
     )
 
+    # Testing Normal
     test_loss, test_accuracy, test_accuracy_5 = test_model(model, loader_test, loss, device, model_name=model_name)
 
+    # Testing Corruptions
     test_corruptions(model, loss, device, model_name=model_name)
 
 

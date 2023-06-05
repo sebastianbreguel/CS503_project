@@ -6,8 +6,8 @@ This is the repository for the CS 503 Visual intelligence: Machines and Minds pr
 
 ## Instalation
 
-`conda create --name new`
-`conda activate new`
+`conda create --name <env>`
+`conda activate <env>`
 `conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 -c pytorch`
 `pip install PyYAML torchsummary scikit-image opencv-python tqdm einops torch_geometric transformers`
 
@@ -25,9 +25,11 @@ You should have an yamls file with the configuration of the model you want to ru
 
 `python main.py --config yamls/<model>.yaml`
 
-With this it will run the pretrained models with the weights folder. To run the models from scratch you should modify the yamls file with:
+With this it will run the pretrained models with the weights folder , here you will train the model, then test on normal images and finally on the corrupted images.
 
-```yaml
+To run the models from scratch you should modify the yamls file with:
+
+```yaml file
 pretrained: False
 ```
 
