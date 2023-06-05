@@ -131,13 +131,12 @@ class MedViT(nn.Module):
 
 
 # Our model
-class Testion(nn.Module):
+class FoodViT(nn.Module):
     def __init__(self, depth=[4, 2], num_heads=4, mlp_ratio=4.0, drop_rate=0.0, patch_embedding="default", positional_encoding=False, img_size=(224, 224), num_classes=10, head_bias=False, **kwargs):
-        super(Testion, self).__init__()
+        super(FoodViT, self).__init__()
         self.num_classes = num_classes
         self.head_bias = head_bias
         self.patch_embedding = ConvEmbedding(3, embed_dim=32, out_channels=96, patch_size=2)
-        # self.patch_embedding = EarlyConv(3, stem_chs=[16, 32, 64], out_ch=96, strides=[2, 2, 2, 2])
 
         initial_size = img_size[0] // 16
 

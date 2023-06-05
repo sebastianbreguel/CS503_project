@@ -1,7 +1,3 @@
-pytorch==1.13.1
-torch-summary
-einops
-pyyaml
-tqdm
-torch_geometric
-opencv-python
+pip==23.0.1
+setuptools==67.8.0
+wheel==0.38.4

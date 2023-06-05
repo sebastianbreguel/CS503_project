@@ -1,5 +1,5 @@
 model:
-  name: "robust"
+  name: "RVT"
   params:
     image_size: 224
     patch_size: 16
@@ -11,7 +11,7 @@ model:
     attn_drop_rate: 0.1
     drop_rate: 0.1
     drop_path_rate: 0.1
-    pretrained: False
+pretrained: False
 
 optimizer:
   name: "AdamW"

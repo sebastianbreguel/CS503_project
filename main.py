@@ -35,18 +35,10 @@ def main(config):
     loss = get_loss(config["training"]["loss"])
 
     # model
-    model = get_model(config)
-    # load model
     model_name = config["model"]["name"]
-    if model_name == "robust" and config["pretrained"] == True:
-        model.load_state_dict(
-            torch.load(
-                "weights/robust/best_model_Wed_May_31_16_16_50_2023.pth",
-                map_location=device,
-            )
-        )
+    model = get_model(config, model_name, device)
 
-    model = model.to(device)
+    # load model
 
     # Optimizer
     optimizer = get_optimizer(config, model.parameters())
@@ -69,22 +61,9 @@ def main(config):
         model_name=model_name,
     )
 
-    localtime = time.asctime(time.localtime(time.time()))
-    localtime = localtime.replace(" ", "_")
-    localtime = localtime.replace(":", "_")
-    test_loss, test_accuracy = test_model(model, loader_test, loss, device, model_name=model_name)
-    with open(f"weights/{model_name}/" + localtime + ".json", "w") as outfile:
-        json.dump(
-            {
-                "train_losses": train_losses,
-                "val_losses": val_losses,
-                "train_accuracy": train_accuracy,
-                "val_accuracy": val_accuracy,
-                "test_loss": test_loss,
-                "test_accuracy": test_accuracy,
-            },
-            outfile,
-        )
+    test_loss, test_accuracy, test_accuracy_5 = test_model(model, loader_test, loss, device, model_name=model_name)
+
+    test_corruptions(model, loss, device, model_name=model_name)
 
 
 if __name__ == "__main__":

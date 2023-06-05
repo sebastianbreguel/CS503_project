@@ -114,7 +114,6 @@ def get_dataset(
     elif name == "CIFAR10":
         transform = transforms.Compose(
             [
-                # TODO resize
                 transforms.ToTensor(),
                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             ]
@@ -128,7 +127,6 @@ def get_dataset(
     elif name == "CIFAR100":
         transform_train = transforms.Compose(
             [
-                # TODO resize
                 transforms.RandomCrop(32, padding=4),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]),
@@ -146,8 +144,7 @@ def get_dataset(
         dataset_test = CIFAR100(root="./data", train=False, download=True, transform=transform_test)
 
         dataset_train, dataset_val = torch.utils.data.random_split(dataset_train_val, [45_000, 5_000])
-        # TODO Imagnet
-        # TODO Cifar10-100  and Imagnet C
+
     elif name == "FOOD101":
         transform_train = transforms.Compose(
             [
