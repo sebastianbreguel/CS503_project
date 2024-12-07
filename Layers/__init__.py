@@ -1,61 +1,53 @@
-from .helper import (
-    DropPath,
-    # Norm layers
-    LayerNorm,
-    RMSNorm,
+from .helper import (  # Norm layers; Activation layers; MedVit paper layers; helper functions
     DeepNormalize,
-    # Activation layers
-    SquaredRelu,
-    Swish,
-    SwiGLU,
+    DropPath,
     GeGlu,
-    QuickGELU,
+    LayerNorm,
     PatchDropout,
-    # MedVit paper layers
+    QuickGELU,
+    RMSNorm,
     SELayer,
+    SquaredRelu,
+    SwiGLU,
+    Swish,
+    _build_projection,
+    _make_divisible,
     h_sigmoid,
     h_swish,
-    _make_divisible,
     trunc_normal_,
-    # helper functions
-    _build_projection,
 )
 from .patch_embeddings import (
     BasicStem,
     ConvEmbedding,
     Downsample,
-    GraphPatchEmbed,
-    NaivePatchEmbed,
     EarlyConv,
+    GraphPatchEmbed,
     MedPatchEmbed,
+    NaivePatchEmbed,
     ReduceSize,
 )
 from .positional_encodings import RelativePos, SineCosinePosEmbedding
-from .transformer import (
-    # Attention layers
+from .transformer import (  # Attention layers; BLOCK layers; MLP layers; Transformer layers
     Attention,
+    Block,
     ConvAttention,
+    CustomBlock,
+    CustomTransformer,
+    ECBlock,
     EMAttention,
     LocalityFeedForward,
+    LTBlock,
+    MedVitTransformer,
+    Mlp,
+    Model1ParallelBlock,
     MultiCHA,
     MultiDPHConvHeadAttention,
-    RobustAttention,
-    RoformerAttention,
-    # BLOCK layers
-    Block,
-    CustomBlock,
-    ECBlock,
-    LTBlock,
     Parallel_blocks,
-    RobustBlock,
-    Model1ParallelBlock,
-    # MLP layers
-    Mlp,
-    RobustMlp,
-    # Transformer layers
-    CustomTransformer,
-    MedVitTransformer,
     ParallelTransformers,
+    RobustAttention,
+    RobustBlock,
+    RobustMlp,
+    RoformerAttention,
     RVTransformer,
     Transformer,
 )

@@ -1,22 +1,24 @@
 import argparse
 import ast
-import pprint
 import json
-import torch
-import numpy
+import pprint
 import random
+import time
+
+import numpy
+import torch
 import yaml
 from torchsummary import summary
-import time
+
 from dataset import get_dataset, get_dataset_to_corrupt
 from utils import (
     get_device,
     get_loss,
     get_model,
     get_optimizer,
+    test_corruptions,
     test_model,
     train_model,
-    test_corruptions,
 )
 
 
@@ -61,7 +63,9 @@ def main(config):
     )
 
     # Testing Normal
-    test_loss, test_accuracy, test_accuracy_5 = test_model(model, loader_test, loss, device, model_name=model_name)
+    test_loss, test_accuracy, test_accuracy_5 = test_model(
+        model, loader_test, loss, device, model_name=model_name
+    )
 
     # Testing Corruptions
     test_corruptions(model, loss, device, model_name=model_name)

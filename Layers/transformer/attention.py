@@ -499,7 +499,6 @@ class RoformerAttention(nn.Module):
 
 
 class RobustAttention(nn.Module):
-
     """
     Position-Aware Attention Scaling https://arxiv.org/pdf/2105.07926.pdf
     - source: https://github.com/vtddggg/Robust-Vision-Transformer/tree/main

@@ -1,9 +1,11 @@
-import torch.nn as nn
-import torch
 import math
 from functools import partial
-from Layers.helper import DropPath
+
+import torch
+import torch.nn as nn
 from einops import rearrange
+
+from Layers.helper import DropPath
 
 
 class Mlp(nn.Module):
@@ -27,7 +29,9 @@ class Mlp(nn.Module):
         else:
             self.fc1 = nn.Conv2d(in_features, hidden_features, 1)
             self.bn1 = nn.BatchNorm2d(hidden_features)
-            self.dwconv = nn.Conv2d(hidden_features, hidden_features, 3, padding=1, groups=hidden_features)
+            self.dwconv = nn.Conv2d(
+                hidden_features, hidden_features, 3, padding=1, groups=hidden_features
+            )
             self.bn2 = nn.BatchNorm2d(hidden_features)
             self.act = act_layer()
             self.fc2 = nn.Conv2d(hidden_features, out_features, 1)
@@ -43,7 +47,11 @@ class Mlp(nn.Module):
             x = self.drop(x)
         else:
             B, N, C = x.shape
-            x = x.reshape(B, int(N**0.5), int(N**0.5), C).permute(0, 3, 1, 2).to(memory_format=torch.contiguous_format)
+            x = (
+                x.reshape(B, int(N**0.5), int(N**0.5), C)
+                .permute(0, 3, 1, 2)
+                .to(memory_format=torch.contiguous_format)
+            )
             x = self.bn1(self.fc1(x))
             x = self.act(x)
             x = self.drop(x)
@@ -86,7 +94,12 @@ class Attention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
 
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).to(memory_format=torch.contiguous_format)
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+            .to(memory_format=torch.contiguous_format)
+        )
         q, k, v = (
             qkv[0],
             qkv[1],
@@ -266,7 +279,9 @@ class conv_embedding(nn.Module):
         self.out_channels = out_channels
 
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)),
+            nn.Conv2d(
+                in_channels, 32, kernel_size=(7, 7), stride=(2, 2), padding=(2, 2)
+            ),
             nn.BatchNorm2d(32),
             nn.MaxPool2d(3, stride=2, padding=1),
             nn.Conv2d(32, out_channels, kernel_size=(4, 4), stride=(4, 4)),
@@ -309,7 +324,9 @@ class RVT(nn.Module):
         self.num_classes = num_classes
 
         self.patch_size = patch_size
-        self.patch_embed = conv_embedding(in_chans, base_dims[0] * heads[0], patch_size, stride, padding)
+        self.patch_embed = conv_embedding(
+            in_chans, base_dims[0] * heads[0], patch_size, stride, padding
+        )
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
@@ -318,7 +335,10 @@ class RVT(nn.Module):
         size = [196, 49]
 
         for stage in range(len(depth)):
-            drop_path_prob = [drop_path_rate * i / total_block for i in range(block_idx, block_idx + depth[stage])]
+            drop_path_prob = [
+                drop_path_rate * i / total_block
+                for i in range(block_idx, block_idx + depth[stage])
+            ]
             block_idx += depth[stage]
 
             if stage == 0:

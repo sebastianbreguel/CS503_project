@@ -6,9 +6,9 @@ from .blocks import (
     CustomBlock,
     ECBlock,
     LTBlock,
+    Model1ParallelBlock,
     Parallel_blocks,
     RobustBlock,
-    Model1ParallelBlock,
 )
 
 
@@ -18,13 +18,17 @@ class Transformer(nn.Module):
     Same as in the transformers graded notebook.
     """
 
-    def __init__(self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None) -> None:
+    def __init__(
+        self, dim, depth, num_heads=8, mlp_ratio=4.0, drop_rate=0.0, masked_block=None
+    ) -> None:
         super(Transformer, self).__init__()
         self.depth = depth
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+            self.blocks.append(
+                Block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:
@@ -77,7 +81,6 @@ class ParallelTransformers(nn.Module):
 
 
 class CustomTransformer(nn.Module):
-
     """
     Class to use custom blocks in the transformer modifications
     """
@@ -97,7 +100,9 @@ class CustomTransformer(nn.Module):
         self.blocks = nn.ModuleList()
 
         for _ in range(depth):
-            self.blocks.append(block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate))
+            self.blocks.append(
+                block(dim=dim, num_heads=num_heads, mlp_ratio=mlp_ratio, drop=drop_rate)
+            )
 
     def forward(self, x) -> torch.Tensor:
         for block in self.blocks:

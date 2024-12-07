@@ -3,7 +3,6 @@ import torch.nn as nn
 
 
 class SineCosinePosEmbedding(nn.Module):
-
     """Sine-cosine positional embeddings from MoCo-v3
     Source: https://github.com/facebookresearch/moco-v3/blob/main/vits.py
     Returns positional embedding of shape [B, N, D]

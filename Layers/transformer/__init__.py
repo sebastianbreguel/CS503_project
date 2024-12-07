@@ -13,9 +13,9 @@ from .blocks import (
     CustomBlock,
     ECBlock,
     LTBlock,
+    Model1ParallelBlock,
     Parallel_blocks,
     RobustBlock,
-    Model1ParallelBlock,
 )
 from .mlp import Mlp, RobustMlp
 from .transformers import (

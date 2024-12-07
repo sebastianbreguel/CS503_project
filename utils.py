@@ -1,18 +1,18 @@
+import os
+import random
+import time
+import uuid
+
 import torch
 import torch.nn.functional as F
-from tqdm import tqdm
-import time
-from models import MedViT, FoodViT
-from robust import RVT
-from transformers import ViTConfig, ViTForImageClassification
-import random
-from torchvision import transforms
-import uuid
-import os
 import torchvision.transforms as transformspil
-from dataset import get_dataset_to_corrupt
+from torchvision import transforms
+from tqdm import tqdm
+from transformers import ViTConfig, ViTForImageClassification
 
-from dataset import add_corruption
+from dataset import add_corruption, get_dataset_to_corrupt
+from models import FoodViT, MedViT
+from robust import RVT
 
 MODELS = ["ViT", "RVT", "MedViT", "FoodViT"]
 OPTIMIZERS = ["AdamW", "Adam", "SGD"]
@@ -54,7 +54,9 @@ def get_model(config, model_name, device) -> torch.nn.Module:
             )
 
     else:
-        return NotImplementedError("Model not implemented. Please choose from: " + str(MODELS))
+        return NotImplementedError(
+            "Model not implemented. Please choose from: " + str(MODELS)
+        )
 
     num_parameters = sum([p.numel() for p in model.parameters()])
     print(f"Number of parameters: {num_parameters:,}")
@@ -75,7 +77,9 @@ def get_optimizer(config, parameters) -> torch.optim.Optimizer:
         optimizer = torch.optim.SGD(parameters, **config["optimizer"]["params"])
 
     else:
-        return NotImplementedError("Optimizer not implemented. Please choose from: " + str(OPTIMIZERS))
+        return NotImplementedError(
+            "Optimizer not implemented. Please choose from: " + str(OPTIMIZERS)
+        )
 
     return optimizer
 
@@ -99,7 +103,9 @@ def get_loss(name):
     if name == "cross entropy":
         loss = F.cross_entropy
     else:
-        raise NotImplementedError("Loss not implemented. Please choose from: " + str(LOSSES))
+        raise NotImplementedError(
+            "Loss not implemented. Please choose from: " + str(LOSSES)
+        )
 
     return loss
 
@@ -145,7 +151,9 @@ def train_model(
             epoch_loss_train += loss.item()
             pred = logits.argmax(dim=1, keepdim=True)
             correct += pred.eq(targets.view_as(pred)).sum().item()
-            correct_5 += torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+            correct_5 += (
+                torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+            )
 
         train_accuracy = correct / len(loader_train.dataset)
         epoch_loss_train /= len(loader_train)
@@ -167,7 +175,9 @@ def train_model(
             epoch_loss_val += loss.item()
             pred = logits.argmax(dim=1, keepdim=True)
             correct += pred.eq(targets.view_as(pred)).sum().item()
-            correct_5_val += torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+            correct_5_val += (
+                torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+            )
 
         val_accuracy = correct / len(loader_val.dataset)
 
@@ -178,16 +188,26 @@ def train_model(
             best_acc_train = val_accuracy
             best_model = model.state_dict()
             # save weights
-            torch.save(best_model, f"weights/{model_name}/best_model_{_}_{localtime}.pth")
+            torch.save(
+                best_model, f"weights/{model_name}/best_model_{_}_{localtime}.pth"
+            )
 
-        print(f"Epoch {_}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}")
-        print(f"Epoch {_}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%")
-        print(f"Epoch {_}: train top 5 accuracy {correct_5/len(loader_train.dataset)*100:.3f}% | val top 5 accuracy {correct_5_val/len(loader_val.dataset)*100:.3f}%")
+        print(
+            f"Epoch {_}: train loss {epoch_loss_train:.3f} | val loss {epoch_loss_val:.3f}"
+        )
+        print(
+            f"Epoch {_}: train accuracy {train_accuracy*100:.3f}% | val accuracy {val_accuracy*100:.3f}%"
+        )
+        print(
+            f"Epoch {_}: train top 5 accuracy {correct_5/len(loader_train.dataset)*100:.3f}% | val top 5 accuracy {correct_5_val/len(loader_val.dataset)*100:.3f}%"
+        )
 
     return model, train_losses, val_losses, train_accuracys, val_accuracys
 
 
-def test_model(model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"):
+def test_model(
+    model, loader_test, loss_function, device: str = "cpu", model_name: str = "ViT"
+):
     test_loss = 0
     correct = 0
     correct_5 = 0
@@ -208,7 +228,9 @@ def test_model(model, loader_test, loss_function, device: str = "cpu", model_nam
 
         pred = logits.argmax(dim=1, keepdim=True)
         correct += pred.eq(targets.view_as(pred)).sum().item()
-        correct_5 += torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+        correct_5 += (
+            torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+        )
 
     test_loss /= len(loader_test)
     accuracy = correct / len(loader_test.dataset)
@@ -247,7 +269,9 @@ def store_corruptions(loader_test):
         # We are assuming inputs and targets are batches and they are tensors
         for img, target in zip(inputs, targets):
             # Create directory for each class if it doesn't exist
-            class_dir = os.path.join("data", "food-101", "corrupted", str(target.item()))
+            class_dir = os.path.join(
+                "data", "food-101", "corrupted", str(target.item())
+            )
             os.makedirs(class_dir, exist_ok=True)
 
             # Convert tensor to PIL Image
@@ -258,7 +282,9 @@ def store_corruptions(loader_test):
             img_pil.save(os.path.join(class_dir, img_name))
 
 
-def test_corruptions(model, loss_function, device: str = "cpu", model_name: str = "ViT"):
+def test_corruptions(
+    model, loss_function, device: str = "cpu", model_name: str = "ViT"
+):
     test_corrupted_loss = 0
     correct_corrupted = 0
 
@@ -276,14 +302,24 @@ def test_corruptions(model, loss_function, device: str = "cpu", model_name: str 
     number = 0
     for imgs, cls_idxs in loader_test:
         inputs, targets = imgs.to(device), cls_idxs.to(device)
-        corruption_type = random.choice(["shot_noise", "impulse_noise", "gaussian_noise", "gaussian_blur", "glass_blur"])
+        corruption_type = random.choice(
+            [
+                "shot_noise",
+                "impulse_noise",
+                "gaussian_noise",
+                "gaussian_blur",
+                "glass_blur",
+            ]
+        )
 
         # Add corruptions to inputs
         severity = random.randint(1, 5)
         now = time.time()
         corruptions.append([corruption_type, severity, time.time() - now])
         inputs = add_corruption(inputs, corruption_type, severity)
-        normalize = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761])
+        normalize = transforms.Normalize(
+            mean=[0.5071, 0.4867, 0.4408], std=[0.2675, 0.2565, 0.2761]
+        )
         inputs = normalize(inputs)
         with torch.no_grad():
             logits = model(inputs)
@@ -294,7 +330,9 @@ def test_corruptions(model, loss_function, device: str = "cpu", model_name: str 
 
         pred = logits.argmax(dim=1, keepdim=True)
         correct_corrupted += pred.eq(targets.view_as(pred)).sum().item()
-        correct_5_corrupted += torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+        correct_5_corrupted += (
+            torch.topk(logits, 5, dim=1)[1].eq(targets.view(-1, 1)).sum().item()
+        )
 
         if number % 100 == 0:
             print(number)
